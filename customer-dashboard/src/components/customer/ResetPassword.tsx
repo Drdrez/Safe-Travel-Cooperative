@@ -157,6 +157,65 @@ export default function ResetPassword() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              <div style={{ marginTop: 8, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                {[
+                  { id: 'len', label: '8+ Chars', met: password.length >= 8 },
+                  { id: 'up', label: 'Uppercase', met: /[A-Z]/.test(password) },
+                  { id: 'num', label: 'Number', met: /[0-9]/.test(password) },
+                  { id: 'sym', label: 'Symbol', met: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
+                ].map((rule) => (
+                  <div key={rule.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 14,
+                        height: 14,
+                        borderRadius: '50%',
+                        background: rule.met ? 'var(--emerald-500)' : 'var(--slate-100)',
+                        transition: 'all 0.3s',
+                      }}
+                    >
+                      {rule.met ? (
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="white"
+                          strokeWidth="5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          style={{ width: 12, height: 12 }}
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="var(--slate-400)"
+                          strokeWidth="4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          style={{ width: 8, height: 8 }}
+                        >
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      )}
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: rule.met ? 'var(--slate-900)' : 'var(--slate-400)',
+                      }}
+                    >
+                      {rule.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--slate-600)' }}>Confirm password</label>
