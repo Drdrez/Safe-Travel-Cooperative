@@ -189,7 +189,9 @@ export function NotificationBell() {
           ref={panelRef}
           style={{
             position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-            width: 360, maxHeight: 480, overflow: 'hidden',
+            width: 'min(360px, calc(100vw - 16px))',
+            maxWidth: 'calc(100vw - 16px)',
+            maxHeight: 480, overflow: 'hidden',
             background: 'white', borderRadius: 14,
             boxShadow: '0 20px 50px rgba(15,23,42,0.18)',
             border: '1px solid var(--slate-100)', zIndex: 50,

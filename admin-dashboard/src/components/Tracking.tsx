@@ -149,7 +149,7 @@ export function Tracking() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+      <div className="admin-tracking-split">
         <div className="card-flat" style={{ height: 600, overflow: 'hidden', position: 'relative' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--slate-100)' }}>
             <div className="flex-start gap-2">

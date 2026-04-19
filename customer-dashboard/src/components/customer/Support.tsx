@@ -197,9 +197,9 @@ export default function Support() {
                             <div key={i} style={{ borderBottom: i === filteredFaqs.length - 1 ? 'none' : '1px solid var(--slate-50)', paddingBottom: 16 }}>
                                 <button 
                                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                                    style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', textAlign: 'left' }}
+                                    style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', textAlign: 'left', gap: 8 }}
                                 >
-                                    <span style={{ fontWeight: 700, fontSize: 15, color: openFaq === i ? 'var(--brand-gold-dark)' : 'var(--slate-700)' }}>{faq.question}</span>
+                                    <span className="support-faq-question" style={{ fontWeight: 700, fontSize: 15, color: openFaq === i ? 'var(--brand-gold-dark)' : 'var(--slate-700)' }}>{faq.question}</span>
                                     {openFaq === i ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                                 </button>
                                 {openFaq === i && (
@@ -332,8 +332,8 @@ export default function Support() {
                 )}
             </div>
 
-            <div className="grid-1" style={{ gap: 16 }}>
-                <a href={`tel:${COOP_CONTACT.phoneE164}`} className="card flex-start" style={{ padding: 16, gap: 16, textDecoration: 'none', color: 'inherit' }}>
+            <div className="space-y-4">
+                <a href={`tel:${COOP_CONTACT.phoneE164}`} className="card flex-start support-contact-link" style={{ padding: 16, gap: 16, textDecoration: 'none', color: 'inherit' }}>
                     <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--slate-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Phone size={18} className="text-slate-600" />
                     </div>
@@ -343,7 +343,7 @@ export default function Support() {
                     </div>
                     <ExternalLink size={14} style={{ marginLeft: 'auto', color: 'var(--slate-300)' }} />
                 </a>
-                <a href={`mailto:${COOP_CONTACT.email}`} className="card flex-start" style={{ padding: 16, gap: 16, textDecoration: 'none', color: 'inherit' }}>
+                <a href={`mailto:${COOP_CONTACT.email}`} className="card flex-start support-contact-link" style={{ padding: 16, gap: 16, textDecoration: 'none', color: 'inherit' }}>
                     <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--slate-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Mail size={18} className="text-slate-600" />
                     </div>

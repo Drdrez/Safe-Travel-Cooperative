@@ -503,12 +503,8 @@ export default function Landing() {
           style={{
             maxWidth: 1100,
             margin: '0 auto',
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,1fr)',
-            gap: 40,
-            alignItems: 'center',
           }}
-          className="landing-hero-grid"
+          className="landing-membership-grid"
         >
           <div>
             <span
@@ -960,7 +956,8 @@ function MarqueeCard({ card }: { card: MarqueeCard }) {
     <div
       style={{
         flex: '0 0 auto',
-        width: 280,
+        width: 'min(280px, 85vw)',
+        maxWidth: '100%',
         background: '#fff',
         borderRadius: 18,
         border: '1px solid var(--slate-100)',

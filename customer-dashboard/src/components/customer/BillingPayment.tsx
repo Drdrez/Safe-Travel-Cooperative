@@ -265,7 +265,7 @@ export default function BillingPayment() {
 
       {/* Invoice Table */}
       <div className="data-card">
-        <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--slate-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--slate-50)' }}>
+        <div className="data-card-header-row" style={{ borderBottom: '1px solid var(--slate-100)', background: 'var(--slate-50)' }}>
             <h3 style={{ fontSize: 16, fontWeight: 800 }}>Payment History</h3>
             <button className="btn btn-outline btn-sm">Download History</button>
         </div>
@@ -371,7 +371,7 @@ export default function BillingPayment() {
                     {['GCash', 'PayMaya'].includes(paymentMethod) && (
                       <div className="animate-in zoom-in duration-300" style={{ padding: 24, background: 'var(--slate-50)', borderRadius: 16, textAlign: 'center', border: '1.5px dashed var(--slate-200)' }}>
                           <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 16 }}>Scan to Pay</p>
-                          <div style={{ width: 200, height: 200, margin: '0 auto', background: 'white', padding: 16, borderRadius: 12, boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ width: 'min(200px, calc(100vw - 120px))', aspectRatio: '1', margin: '0 auto', background: 'white', padding: 12, borderRadius: 12, boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', overflow: 'hidden' }}>
                               <QRCodeSVG 
                                   value={`SafeTravelPay:${selectedBill.billing_id_str}:${selectedBill.amount_cents}`}
                                   size={168}
@@ -406,13 +406,13 @@ export default function BillingPayment() {
                           Secure transactions are powered by STTC Gateway. Payments are verified manually by our dispatchers within 15 minutes.
                        </p>
                     </div>
-                    <div className="flex-start" style={{ gap: 12 }}>
-                       <button onClick={() => setShowPaymentModal(false)} className="btn btn-outline" style={{ flex: 1 }}>Cancel</button>
+                    <div className="customer-modal-footer-row">
+                       <button onClick={() => setShowPaymentModal(false)} className="btn btn-outline">Cancel</button>
                        <button 
                            onClick={handleConfirmPayment} 
                            disabled={!paymentMethod || (['GCash', 'PayMaya', 'Bank Transfer'].includes(paymentMethod) && !referenceId) || isProcessing}
                            className="btn btn-brand" 
-                           style={{ flex: 1.5 }}
+                           style={{ flex: '1.5 1 200px' }}
                        >
                            {isProcessing ? <Loader2 className="animate-spin" /> : 'Confirm Payment'}
                        </button>

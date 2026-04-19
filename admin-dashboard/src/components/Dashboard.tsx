@@ -339,7 +339,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
         })}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 32 }}>
+      <div className="admin-dashboard-split">
         <div className="space-y-4">
           <div className="flex-between" style={{ height: 40, padding: '0 4px' }}>
             <h2 className="section-title" style={{ margin: 0 }}>

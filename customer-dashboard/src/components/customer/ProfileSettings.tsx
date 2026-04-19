@@ -179,8 +179,8 @@ export default function ProfileSettings() {
 
       <div style={{ maxWidth: 840, margin: '0 auto' }} className="space-y-10">
         {/* Profile Form */}
-        <div className="card" style={{ padding: '40px 48px' }}>
-           <div style={{ display: 'flex', gap: 32, alignItems: 'center', marginBottom: 40 }}>
+        <div className="card profile-settings-card">
+           <div className="profile-settings-hero">
               <div style={{ position: 'relative' }}>
                  <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'var(--brand-gold-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--brand-gold)' }}>
                      <User size={44} className="text-brand-gold" />

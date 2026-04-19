@@ -189,7 +189,7 @@ export default function MakeReservation() {
           <h1>Vehicle Reservation</h1>
           <p>Complete your booking in three simple steps.</p>
         </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="page-header-steps">
             {[1, 2, 3].map(i => (
                 <div key={i} style={{ 
                     width: 32, height: 32, borderRadius: '50%', 
@@ -204,9 +204,12 @@ export default function MakeReservation() {
         </div>
       </div>
 
-      <div className="grid-2" style={{ gridTemplateColumns: '1.2fr 0.8fr', gap: 32 }}>
+      <div className="make-reservation-layout">
         {/* Reservation Wizard */}
-        <div className="card" style={{ padding: 40, border: '1px solid var(--slate-200)', minHeight: 600, display: 'flex', flexDirection: 'column' }}>
+        <div
+          className="card booking-wizard-card"
+          style={{ border: '1px solid var(--slate-200)', display: 'flex', flexDirection: 'column' }}
+        >
           
           <div style={{ flex: 1 }}>
             {step === 1 && (
@@ -431,7 +434,7 @@ export default function MakeReservation() {
             )}
           </div>
 
-          <div style={{ paddingTop: 40, marginTop: 'auto', borderTop: '1px solid var(--slate-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="booking-step-footer" style={{ paddingTop: 40, marginTop: 'auto', borderTop: '1px solid var(--slate-100)' }}>
             {step > 1 ? (
                 <button onClick={prevStep} className="btn btn-outline" style={{ height: 50, padding: '0 24px' }}>
                     <ChevronLeft size={18} /> Previous Step
@@ -451,7 +454,7 @@ export default function MakeReservation() {
                   onClick={handleSubmit} 
                   className="btn btn-brand" 
                   disabled={isLoading}
-                  style={{ height: 60, minWidth: 280, borderRadius: 16, fontSize: 16 }}
+                  style={{ height: 60, borderRadius: 16, fontSize: 16 }}
                 >
                   {isLoading ? <Loader2 className="animate-spin" /> : <>Confirm & Request Reservation <ShieldCheck size={20} /></>}
                 </button>
@@ -529,7 +532,7 @@ export default function MakeReservation() {
                       <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--slate-900)' }}>{formatPHP(orderSummary.cost)}</span>
                   </div>
               </div>
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div className="reservation-success-actions">
                 <button
                     onClick={() => navigate('/customer')}
                     className="btn btn-outline w-full"

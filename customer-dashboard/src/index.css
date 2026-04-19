@@ -58,12 +58,23 @@
   -webkit-font-smoothing: antialiased;
 }
 
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   background: var(--bg-main);
   color: var(--text-main);
   line-height: 1.5;
   overflow-x: hidden;
+  max-width: 100%;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
 }
 
 a { text-decoration: none; color: inherit; }
@@ -308,11 +319,15 @@ button {
   padding: 24px;
   box-shadow: var(--shadow-sm);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  max-width: 100%;
+  min-width: 0;
 }
 
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
 }
 
 .btn {
@@ -371,6 +386,17 @@ button {
   border-radius: var(--radius-lg);
 }
 
+.btn.w-full {
+  white-space: normal;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .btn {
+    white-space: normal;
+  }
+}
+
 /* Data Tables */
 .data-card {
   background: white;
@@ -413,6 +439,14 @@ button {
   border-bottom: none;
 }
 
+@media (max-width: 640px) {
+  .data-table th,
+  .data-table td {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
 /* Form Elements */
 input, select, textarea {
   width: 100%;
@@ -444,6 +478,8 @@ textarea {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
   margin-bottom: 40px;
 }
 
@@ -508,7 +544,14 @@ textarea {
 .space-y-10 > * + * { margin-top: 48px; }
 .space-y-12 > * + * { margin-top: 64px; }
 
-.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
 .flex-start { display: flex; align-items: center; gap: 12px; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
@@ -662,9 +705,267 @@ textarea {
   }
 }
 
+.customer-tracking-layout {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 32px;
+  width: 100%;
+  min-width: 0;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .customer-tracking-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reservation-modal-footer-btns {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reservation-modal-footer-btns .btn {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
 .customer-trip-header {
   flex-wrap: wrap;
   gap: 12px 16px;
+}
+
+/* Booking wizard — do not use inline grid columns (they override global breakpoints) */
+.make-reservation-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 32px;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.make-reservation-layout > * {
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .make-reservation-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.booking-wizard-card {
+  padding: clamp(20px, 4vw, 40px) !important;
+  min-height: auto !important;
+}
+
+.booking-step-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 520px) {
+  .booking-step-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .booking-step-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .booking-step-footer .btn-brand {
+    min-width: 0 !important;
+  }
+}
+
+.profile-settings-hero {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 560px) {
+  .profile-settings-hero {
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+.profile-settings-card {
+  padding: clamp(22px, 4vw, 48px) !important;
+}
+
+/* Landing membership: class-based grid so media queries apply (inline grid wins over .landing-hero-grid) */
+.landing-membership-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .landing-membership-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .booking-wizard-card {
+    padding: 16px !important;
+  }
+}
+
+.reservation-success-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reservation-success-actions .btn {
+  flex: 1 1 auto;
+  min-width: min(100%, 200px);
+}
+
+/* Wide tables: horizontal scroll (Membership, etc.) */
+.table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper .data-table {
+  min-width: 560px;
+}
+
+.page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1024px) {
+  .page-header-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+.page-header-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1024px) {
+  .page-header-steps {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+.customer-modal-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.customer-modal-footer-row .btn {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .customer-modal-footer-row .btn {
+    flex: 1 1 100%;
+  }
+}
+
+.customer-tracking-map-card {
+  height: min(400px, 58vh);
+  min-height: 220px;
+}
+
+.tracking-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
+.tracking-progress-header > div:last-child {
+  text-align: right;
+}
+
+@media (max-width: 480px) {
+  .tracking-progress-header > div:last-child {
+    text-align: left;
+  }
+}
+
+.customer-driver-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.customer-driver-actions .btn {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.data-card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: clamp(16px, 3vw, 24px) clamp(16px, 3vw, 32px);
+}
+
+.support-faq-question {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+  padding-right: 8px;
+}
+
+.support-contact-link {
+  align-items: flex-start !important;
+  min-width: 0;
+}
+
+.support-contact-link > div:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+}
+
+.support-contact-link p:last-of-type {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.legal-doc {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  padding: clamp(20px, 4vw, 36px) clamp(16px, 4vw, 32px);
 }
 
 /* Modal Styles */
@@ -702,6 +1003,10 @@ textarea {
   margin: 0 auto; /* Center horizontally */
   z-index: 9001;
   animation: slideUpModal 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal.modal-md {
+  max-width: min(560px, 100vw - 24px);
 }
 
 @media (max-width: 540px) {

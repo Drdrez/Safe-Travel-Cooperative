@@ -33,10 +33,10 @@ export default function TermsOfService() {
         </Link>
 
         <div
+          className="legal-doc"
           style={{
             background: 'white',
             borderRadius: 16,
-            padding: '36px 32px',
             border: '1px solid var(--slate-100)',
             boxShadow: '0 4px 24px rgba(15, 23, 42, 0.06)',
           }}

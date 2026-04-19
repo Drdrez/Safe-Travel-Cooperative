@@ -168,7 +168,7 @@ export default function MyReservations() {
           <h1>My Trips</h1>
           <p>Upcoming journeys and previous trips with Safe Travel Cooperative.</p>
         </div>
-        <div className="page-header-actions" style={{ display: 'flex', gap: 8 }}>
+        <div className="page-header-actions">
            <button className="btn btn-outline" onClick={handleRefresh} disabled={isRefreshing} title="Refresh">
               <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : undefined} />
            </button>
@@ -256,7 +256,7 @@ export default function MyReservations() {
                       <h2 style={{ fontSize: 24, fontWeight: 800 }}>{selectedReservation.reservation_id_str}</h2>
                    </div>
                    
-                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                   <div className="customer-modal-grid-2">
                       <div>
                           <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 6 }}>Departure</p>
                           <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--slate-900)' }}>{selectedReservation.pickup_location}</p>
@@ -267,7 +267,7 @@ export default function MyReservations() {
                       </div>
                    </div>
 
-                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                   <div className="customer-modal-grid-2">
                       <div>
                           <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 6 }}>Pickup</p>
                           <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--slate-900)' }}>{formatDateTime(selectedReservation.start_date)}</p>
@@ -290,7 +290,7 @@ export default function MyReservations() {
                       </div>
                    </div>
 
-                   <div style={{ paddingTop: 24, borderTop: '1px solid var(--slate-100)', display: 'flex', gap: 12 }}>
+                   <div className="reservation-modal-footer-btns" style={{ paddingTop: 24, borderTop: '1px solid var(--slate-100)' }}>
                       <button
                         onClick={() => {
                           const resId = selectedReservation.id;
@@ -350,7 +350,7 @@ export default function MyReservations() {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', gap: 12 }}>
+                  <div className="customer-modal-footer-row">
                      <button onClick={() => setReservationToCancel(null)} className="btn btn-outline w-full">Keep Booking</button>
                      <button onClick={handleCancelReservation} disabled={isCancelling} className="btn btn-brand w-full" style={{ background: '#ef4444', color: 'white' }}>
                         {isCancelling ? <Loader2 className="animate-spin" /> : withinFeeWindow ? `Cancel & owe ${formatPHP(fromCents(feeCents))}` : 'Yes, Cancel'}

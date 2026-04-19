@@ -279,9 +279,9 @@ export default function CustomerDashboard() {
                         </div>
                     </div>
 
-                    <div className="flex-start" style={{ gap: 12 }}>
-                        <button onClick={() => setSelectedRes(null)} className="btn btn-outline" style={{ flex: 1 }}>Close</button>
-                        <button onClick={() => navigate('/customer/tracking')} className="btn btn-brand" style={{ flex: 1.5 }}>Track Live</button>
+                    <div className="customer-modal-footer-row">
+                        <button onClick={() => setSelectedRes(null)} className="btn btn-outline">Close</button>
+                        <button onClick={() => navigate('/customer/tracking')} className="btn btn-brand" style={{ flex: '1.5 1 200px' }}>Track Live</button>
                     </div>
                 </div>
              </div>

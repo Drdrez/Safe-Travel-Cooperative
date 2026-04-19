@@ -166,17 +166,17 @@ export default function TrackingPage() {
         </div>
       </div>
 
-      <div className="grid-2" style={{ gridTemplateColumns: '0.9fr 1.1fr', gap: 32 }}>
+      <div className="customer-tracking-layout">
         {/* Left Column: Status & Driver */}
         <div className="space-y-6">
            {/* Progress Card */}
            <div className="card" style={{ padding: 24 }}>
-              <div className="flex-between" style={{ marginBottom: 20 }}>
+              <div className="tracking-progress-header" style={{ marginBottom: 20 }}>
                  <div>
                     <span className="status-badge" style={{ marginBottom: 4, background: 'var(--brand-gold-light)', color: 'var(--brand-gold-dark)' }}>{trackingData.status}</span>
                     <h3 style={{ fontSize: 20, fontWeight: 800 }}>{isSimulating ? 'Simulating Trip...' : 'Track My Journey'}</h3>
                  </div>
-                 <div style={{ textAlign: 'right' }}>
+                 <div>
                     <p style={{ fontSize: 11, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Trip ID</p>
                     <p style={{ fontWeight: 800 }}>{trackingData.reservationId}</p>
                  </div>
@@ -192,7 +192,7 @@ export default function TrackingPage() {
                  </div>
               </div>
 
-              <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="customer-modal-grid-2" style={{ marginTop: 24 }}>
                  <div style={{ padding: 16, background: 'var(--slate-50)', borderRadius: 12 }}>
                     <p style={{ fontSize: 11, color: 'var(--slate-400)', marginBottom: 4 }}>ETA</p>
                     <p style={{ fontSize: 16, fontWeight: 800 }}>{trackingData.eta}</p>
@@ -219,7 +219,7 @@ export default function TrackingPage() {
                     </div>
                  </div>
               </div>
-              <div className="flex-start" style={{ gap: 12 }}>
+              <div className="customer-driver-actions">
                  <button className="btn btn-outline w-full" style={{ gap: 8 }}>
                     <MessageSquare size={16} /> Chat
                  </button>
@@ -236,7 +236,7 @@ export default function TrackingPage() {
 
         {/* Right Column: Live Map & Location Details */}
         <div className="space-y-6">
-           <div className="card" style={{ padding: 0, height: 400, position: 'relative', overflow: 'hidden', border: '1px solid var(--slate-200)', zIndex: 0 }}>
+           <div className="card customer-tracking-map-card" style={{ padding: 0, position: 'relative', overflow: 'hidden', border: '1px solid var(--slate-200)', zIndex: 0 }}>
               <MapContainer 
                 center={currentPos} 
                 zoom={12} 
