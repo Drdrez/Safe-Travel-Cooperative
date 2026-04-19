@@ -178,8 +178,9 @@ export default function Landing() {
           </span>
         </div>
       )}
-      {/* ========== NAV ========== */}
+      {/* ========== NAV (hidden on small screens — hero has primary CTAs) ========== */}
       <header
+        className="landing-site-header"
         style={{
           position: 'sticky',
           top: 0,
@@ -234,6 +235,7 @@ export default function Landing() {
 
       {/* ========== HERO ========== */}
       <section
+        className="landing-hero"
         style={{
           position: 'relative',
           padding: '120px 24px 132px',
@@ -756,6 +758,12 @@ export default function Landing() {
           color: #facc15;
         }
         @media (max-width: 860px) {
+          .landing-site-header {
+            display: none !important;
+          }
+          .landing-hero {
+            padding-top: 72px !important;
+          }
           .landing-hero-grid { grid-template-columns: 1fr !important; }
           .hide-sm { display: none !important; }
           .landing-vehicle-strip { grid-template-columns: repeat(3, 1fr); }
