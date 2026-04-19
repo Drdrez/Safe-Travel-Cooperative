@@ -117,7 +117,12 @@ export function Vehicles() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this vehicle? This cannot be undone.')) return;
+    if (
+      !confirm(
+        'Delete this vehicle? Past reservations remain on file without this vehicle linked. Service records tied only to this unit are removed. This cannot be undone.'
+      )
+    )
+      return;
     const { error } = await supabase.from('vehicles').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Vehicle deleted');

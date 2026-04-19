@@ -26,13 +26,32 @@ export default function CustomerLogin() {
         return;
       }
 
-      const { data: profile } = await supabase
+      const { data: portalLocked, error: rpcError } = await supabase.rpc('is_customer_portal_locked');
+      if (!rpcError && portalLocked === true) {
+        await supabase.auth.signOut();
+        toast.error(
+          'This account is deactivated. See our Privacy policy for details, or contact the cooperative to discuss reactivation.'
+        );
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('full_name, role, deactivated_at')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
 
-      if (profile?.deactivated_at) {
+      if (profileError) {
+        await supabase.auth.signOut();
+        toast.error(
+          `Could not verify your account (${profileError.message}). If you recently updated the database, apply pending migrations or contact support.`
+        );
+        return;
+      }
+
+      const deactivated =
+        profile?.deactivated_at != null && String(profile.deactivated_at).trim() !== '';
+      if (deactivated) {
         await supabase.auth.signOut();
         toast.error(
           'This account is deactivated. See our Privacy policy for details, or contact the cooperative to discuss reactivation.'

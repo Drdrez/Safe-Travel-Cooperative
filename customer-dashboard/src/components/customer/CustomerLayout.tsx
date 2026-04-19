@@ -24,13 +24,39 @@ export default function CustomerLayout() {
         return;
       }
 
-      const { data: profile } = await supabase
+      const { data: portalLocked, error: rpcError } = await supabase.rpc('is_customer_portal_locked');
+      if (!rpcError && portalLocked === true) {
+        await supabase.auth.signOut();
+        if (isMounted) {
+          localStorage.removeItem('customerLoggedIn');
+          localStorage.removeItem('customerName');
+          localStorage.removeItem('customerEmail');
+          toast.error(
+            'This account has been deactivated. Contact the cooperative if you need access again.'
+          );
+          navigate('/login', { replace: true });
+        }
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role, deactivated_at')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
 
-      if (profile?.deactivated_at) {
+      if (profileError) {
+        await supabase.auth.signOut();
+        if (isMounted) {
+          toast.error(`Session could not be verified (${profileError.message}). Please sign in again.`);
+          navigate('/login', { replace: true });
+        }
+        return;
+      }
+
+      const deactivated =
+        profile?.deactivated_at != null && String(profile.deactivated_at).trim() !== '';
+      if (deactivated) {
         await supabase.auth.signOut();
         if (isMounted) {
           localStorage.removeItem('customerLoggedIn');
@@ -53,6 +79,15 @@ export default function CustomerLayout() {
         return;
       }
 
+      if (!profile) {
+        await supabase.auth.signOut();
+        if (isMounted) {
+          toast.error('No customer profile found for this account.');
+          navigate('/login', { replace: true });
+        }
+        return;
+      }
+
       if (isMounted) {
         setIsAuthorized(true);
         setIsChecking(false);
@@ -61,8 +96,14 @@ export default function CustomerLayout() {
 
     verify();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session && isMounted) navigate('/login', { replace: true });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session && isMounted) {
+        navigate('/login', { replace: true });
+        return;
+      }
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && isMounted) {
+        verify();
+      }
     });
 
     return () => {
