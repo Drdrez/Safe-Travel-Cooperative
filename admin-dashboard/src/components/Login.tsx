@@ -81,6 +81,19 @@ export function Login({ onLogin }: LoginProps) {
                 required
               />
             </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+              <a
+                href="/forgot-password"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'var(--brand-gold-dark)',
+                  textDecoration: 'none',
+                }}
+              >
+                Forgot password?
+              </a>
+            </div>
           </div>
 
           <button type="submit" className="btn btn-brand btn-lg w-full" disabled={loading} style={{ marginTop: 8 }}>

@@ -18,9 +18,18 @@ import { Members } from './components/Members';
 import { Loans } from './components/Loans';
 import { Maintenance } from './components/Maintenance';
 import { Login } from './components/Login';
+import { ForgotPassword } from './components/ForgotPassword';
+import { ResetPassword } from './components/ResetPassword';
 import { NotificationBell } from './components/NotificationBell';
 import { Toaster } from 'sonner';
 import { supabase } from './lib/supabase';
+
+function getUnauthenticatedView(): 'login' | 'forgot-password' | 'reset-password' {
+  const p = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+  if (p === '/forgot-password') return 'forgot-password';
+  if (p === '/reset-password') return 'reset-password';
+  return 'login';
+}
 
 export default function App() {
   const [activeScreen, setActiveScreen] = useState('dashboard');
@@ -92,9 +101,12 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
+    const unauthView = getUnauthenticatedView();
     return (
       <>
-        <Login onLogin={() => setIsAuthenticated(true)} />
+        {unauthView === 'login' && <Login onLogin={() => setIsAuthenticated(true)} />}
+        {unauthView === 'forgot-password' && <ForgotPassword />}
+        {unauthView === 'reset-password' && <ResetPassword />}
         <Toaster position="bottom-right" richColors />
       </>
     );
