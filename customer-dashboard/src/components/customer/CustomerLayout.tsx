@@ -43,7 +43,7 @@ export default function CustomerLayout() {
 
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth >= 1024) setMobileNavOpen(false);
+      if (window.innerWidth > 1100) setMobileNavOpen(false);
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);

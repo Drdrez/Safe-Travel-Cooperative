@@ -166,7 +166,7 @@ export default function Support() {
         </div>
       </div>
 
-      <div className="grid-2" style={{ gridTemplateColumns: '1fr 0.8fr', gap: 40, alignItems: 'start' }}>
+      <div className="support-two-col">
         
         {/* FAQ Section */}
         <div className="space-y-8">
@@ -215,7 +215,10 @@ export default function Support() {
                 </div>
             </div>
 
-            <div className="card" style={{ padding: 24, background: 'var(--slate-900)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div
+              className="card support-helpline-banner"
+              style={{ padding: 24, background: 'var(--slate-900)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <LifeBuoy className="text-brand-gold" size={24} />

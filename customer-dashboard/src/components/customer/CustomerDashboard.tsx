@@ -86,12 +86,18 @@ export default function CustomerDashboard() {
   return (
     <div className="space-y-10 animate-in fade-in duration-700" style={{ paddingBottom: 60 }}>
       {/* Welcome Header */}
-      <div className="card" style={{ 
-          background: 'var(--slate-900)', border: 'none', padding: '40px 48px', position: 'relative', overflow: 'hidden',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-      }}>
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <h1 style={{ color: 'white', fontSize: 40, marginBottom: 12 }}>Hello, {customer?.full_name?.split(' ')[0] || 'Guest'}!</h1>
+      <div
+        className="card customer-dashboard-hero"
+        style={{
+          background: 'var(--slate-900)',
+          border: 'none',
+          padding: '40px 48px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ position: 'relative', zIndex: 1, minWidth: 0 }}>
+          <h1 style={{ color: 'white', marginBottom: 12 }}>Hello, {customer?.full_name?.split(' ')[0] || 'Guest'}!</h1>
           <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 18, fontWeight: 500 }}>
             {metrics.active > 0 
                 ? <>You have <strong style={{ color: 'var(--brand-gold)' }}>{metrics.active} active trips</strong> scheduled. Safe travels!</>
@@ -99,7 +105,7 @@ export default function CustomerDashboard() {
             }
           </p>
         </div>
-        <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ position: 'relative', zIndex: 1, flexShrink: 0 }}>
           <button className="btn btn-brand btn-lg" onClick={() => navigate('/customer/make-reservation')}>
             <Calendar size={20} /> Book New Trip
           </button>
@@ -149,8 +155,8 @@ export default function CustomerDashboard() {
             <h3 style={{ fontSize: 18, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Zap size={20} className="text-brand-gold" /> Recent Activity
             </h3>
-            <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex' }}>
-                <div style={{ width: 280, background: 'var(--slate-50)', position: 'relative' }}>
+            <div className="card customer-dashboard-recent">
+                <div className="customer-dashboard-recent-media">
                     {recentRes.vehicles?.image_url ? (
                         <img src={recentRes.vehicles.image_url} alt="V" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
@@ -164,8 +170,8 @@ export default function CustomerDashboard() {
                         </span>
                     </div>
                 </div>
-                <div style={{ flex: 1, padding: 32 }}>
-                    <div className="flex-between" style={{ marginBottom: 24 }}>
+                <div className="customer-dashboard-recent-body">
+                    <div className="flex-between customer-trip-header" style={{ marginBottom: 24 }}>
                         <div>
                             <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 4 }}>Trip Reference</p>
                             <h4 style={{ fontSize: 20, fontWeight: 800 }}>{recentRes.reservation_id_str}</h4>
@@ -193,7 +199,7 @@ export default function CustomerDashboard() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 16 }}>
+                    <div className="customer-trip-actions">
                         <button onClick={() => navigate('/customer/tracking')} className="btn btn-brand" style={{ height: 48, padding: '0 24px' }}>
                             Track This Trip
                         </button>
@@ -228,7 +234,7 @@ export default function CustomerDashboard() {
                 </div>
 
                 <div style={{ padding: 32 }} className="space-y-6">
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                    <div className="customer-modal-grid-2">
                         <div className="flex-start" style={{ gap:12 }}>
                             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--slate-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <MapPin size={18} className="text-slate-400" />
@@ -249,7 +255,7 @@ export default function CustomerDashboard() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, padding: '24px 0', borderTop: '1px solid var(--slate-100)', borderBottom: '1px solid var(--slate-100)' }}>
+                    <div className="customer-modal-grid-2" style={{ padding: '24px 0', borderTop: '1px solid var(--slate-100)', borderBottom: '1px solid var(--slate-100)' }}>
                         <div>
                             <p style={{ fontSize: 11, color: 'var(--slate-400)', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Schedule</p>
                             <div className="flex-start" style={{ gap: 8 }}>
@@ -296,7 +302,7 @@ export default function CustomerDashboard() {
             <p style={{ color: 'var(--slate-500)', fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
                 Our support staff is available 24/7 for your travel needs. We're here to help you move safely.
             </p>
-            <div className="flex-start" style={{ gap: 16 }}>
+            <div className="flex-start customer-trip-actions" style={{ gap: 16 }}>
                 <button className="btn btn-outline" onClick={() => navigate('/customer/support')}>Contact Support</button>
                 <button className="btn btn-ghost" style={{ fontWeight: 700 }} onClick={() => navigate('/customer/support')}>View FAQ <ChevronRight size={16} /></button>
             </div>

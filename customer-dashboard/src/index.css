@@ -91,8 +91,12 @@ button {
 /* Layout */
 .customer-layout {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 .top-nav {
@@ -111,6 +115,7 @@ button {
 .nav-content {
   max-width: 1400px;
   width: 100%;
+  min-width: 0;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -153,7 +158,9 @@ button {
   padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left));
   max-width: 1400px;
   width: 100%;
+  min-width: 0;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .customer-footer-inner {
@@ -173,7 +180,8 @@ button {
   display: none;
 }
 
-@media (max-width: 1023px) {
+/* Use hamburger + drawer below ~ laptop width so tablets get mobile nav */
+@media (max-width: 1100px) {
   .customer-nav-links {
     display: none;
   }
@@ -277,7 +285,7 @@ button {
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1101px) {
   .top-nav {
     padding-left: 32px;
     padding-right: 32px;
@@ -505,6 +513,160 @@ textarea {
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
 
+@media (max-width: 1024px) {
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .page-header h1 {
+    font-size: clamp(1.35rem, 4vw, 2rem);
+  }
+}
+
+/* Support: FAQ + form side-by-side on desktop */
+.support-two-col {
+  display: grid;
+  grid-template-columns: 1fr 0.85fr;
+  gap: 40px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .support-two-col {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+
+.support-helpline-banner {
+  flex-wrap: wrap;
+  gap: 16px !important;
+}
+
+.support-helpline-banner .btn {
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .support-helpline-banner {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .support-helpline-banner .btn {
+    width: 100%;
+  }
+}
+
+/* Dashboard home: hero + recent trip */
+.customer-dashboard-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.customer-dashboard-hero h1 {
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  word-break: break-word;
+}
+
+.customer-dashboard-recent {
+  display: flex;
+  flex-direction: row;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.customer-dashboard-recent-media {
+  width: 280px;
+  min-height: 200px;
+  flex-shrink: 0;
+  position: relative;
+  background: var(--slate-50);
+}
+
+.customer-dashboard-recent-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  min-height: 200px;
+}
+
+.customer-dashboard-recent-body {
+  flex: 1;
+  min-width: 0;
+  padding: clamp(20px, 4vw, 32px);
+}
+
+.customer-trip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .customer-dashboard-recent {
+    flex-direction: column;
+  }
+
+  .customer-dashboard-recent-media {
+    width: 100%;
+    height: 220px;
+    min-height: 180px;
+  }
+
+  .customer-trip-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+
+  .customer-trip-header > div:last-child {
+    text-align: left !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .customer-dashboard-hero {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 28px 22px !important;
+  }
+
+  .customer-dashboard-hero .btn-lg {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.customer-modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 560px) {
+  .customer-modal-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.customer-trip-header {
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
 /* Modal Styles */
 .modal-backdrop {
   position: fixed;
@@ -534,11 +696,22 @@ textarea {
   padding: 40px;
   box-shadow: var(--shadow-xl);
   width: 100%;
-  max-width: 500px;
+  max-width: min(500px, 100vw - 24px);
+  box-sizing: border-box;
   position: relative;
   margin: 0 auto; /* Center horizontally */
   z-index: 9001;
   animation: slideUpModal 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 540px) {
+  .modal-backdrop {
+    padding: 12px 10px !important;
+  }
+
+  .modal {
+    padding: 24px 16px;
+  }
 }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
