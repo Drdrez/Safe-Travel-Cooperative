@@ -1,6 +1,8 @@
 import { createBrowserRouter } from "react-router";
 import Landing from "./components/customer/Landing";
 import CustomerLogin from "./components/customer/CustomerLogin";
+import ForgotPassword from "./components/customer/ForgotPassword";
+import ResetPassword from "./components/customer/ResetPassword";
 import CustomerRegister from "./components/customer/CustomerRegister";
 import CustomerDashboard from "./components/customer/CustomerDashboard";
 import MakeReservation from "./components/customer/MakeReservation";
@@ -30,6 +32,14 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     Component: CustomerLogin,
+  },
+  {
+    path: "/forgot-password",
+    Component: ForgotPassword,
+  },
+  {
+    path: "/reset-password",
+    Component: ResetPassword,
   },
   {
     path: "/register",

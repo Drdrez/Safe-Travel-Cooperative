@@ -182,6 +182,14 @@ export default function CustomerLogin() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+              <Link
+                to="/forgot-password"
+                style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-gold-dark)' }}
+              >
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <button
