@@ -29,7 +29,8 @@ type FleetVehicle = {
   model: string;
   plate_number: string;
   capacity: number | null;
-  rental_rate_per_day_cents: number | null;
+  /** Matches `vehicles.daily_rate_cents` from admin / DB */
+  daily_rate_cents: number | null;
   image_url?: string | null;
   status?: string | null;
 };
@@ -121,10 +122,10 @@ export default function Landing() {
         const [{ data: vehicles }, { count: driverCount }, { count: tripCount }] = await Promise.all([
           supabase
             .from('vehicles')
-            .select('id, model, plate_number, capacity, rental_rate_per_day_cents, image_url, status')
-            .eq('status', 'Available')
-            .order('rental_rate_per_day_cents', { ascending: true })
-            .limit(6),
+            .select('id, model, plate_number, capacity, daily_rate_cents, image_url, status')
+            .neq('status', 'Retired')
+            .order('model', { ascending: true })
+            .limit(80),
           supabase
             .from('profiles')
             .select('id', { count: 'exact', head: true })
@@ -401,7 +402,7 @@ export default function Landing() {
           <SectionHeader
             eyebrow="Our vehicles"
             title="A vehicle for every trip"
-            subtitle="Cars for one, vans for the family, and shuttles for bigger groups. All checked and cleaned before every ride."
+            subtitle="Fleet units you see here are the same ones we manage in our system (except vehicles marked Retired). Rates and availability can change—sign in to book."
           />
         </div>
 
@@ -842,6 +843,8 @@ type MarqueeCard = {
   tint: string;
   icon: typeof Car;
   imageUrl?: string | null;
+  /** Vehicle status for badge (from DB); sample rows use "Available". */
+  statusBadge?: string;
 };
 
 function VehicleMarquee({ realVehicles }: { realVehicles: FleetVehicle[] }) {
@@ -850,14 +853,15 @@ function VehicleMarquee({ realVehicles }: { realVehicles: FleetVehicle[] }) {
     realVehicles.length > 0
       ? realVehicles.map((v) => ({
           key: v.id,
-          title: v.model,
-          subtitle: `${v.plate_number}${v.capacity != null ? ` • ${v.capacity} seats` : ''}`,
-          priceLabel: v.rental_rate_per_day_cents
-            ? `${formatPHP(fromCents(v.rental_rate_per_day_cents))} / day`
+          title: v.model || 'Vehicle',
+          subtitle: `${v.plate_number || '—'}${v.capacity != null ? ` • ${v.capacity} seats` : ''}`,
+          priceLabel: v.daily_rate_cents
+            ? `${formatPHP(fromCents(v.daily_rate_cents))} / day`
             : 'Rate on request',
           tint: 'var(--brand-gold)',
           icon: Car,
           imageUrl: v.image_url ?? null,
+          statusBadge: v.status || 'Available',
         }))
       : SAMPLE_VEHICLES.map((s) => ({
           key: s.id,
@@ -866,6 +870,7 @@ function VehicleMarquee({ realVehicles }: { realVehicles: FleetVehicle[] }) {
           priceLabel: `₱${s.dailyRatePHP.toLocaleString()} / day`,
           tint: s.tint,
           icon: s.icon,
+          statusBadge: 'Available',
         }));
 
   // Duplicate the list so the marquee loops seamlessly.
@@ -908,6 +913,34 @@ function VehicleMarquee({ realVehicles }: { realVehicles: FleetVehicle[] }) {
         }
       `}</style>
     </div>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
+  const s = status || 'Available';
+  const palette =
+    s === 'Available'
+      ? { background: 'var(--emerald-50)', color: 'var(--emerald-600)' }
+      : s === 'Maintenance'
+        ? { background: 'var(--amber-50)', color: 'var(--amber-700)' }
+        : s === 'Reserved' || s === 'In Service'
+          ? { background: 'var(--sky-50)', color: 'var(--sky-700)' }
+          : { background: 'var(--slate-100)', color: 'var(--slate-600)' };
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 800,
+        padding: '4px 10px',
+        borderRadius: 999,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+        whiteSpace: 'nowrap',
+        ...palette,
+      }}
+    >
+      {s}
+    </span>
   );
 }
 
@@ -986,21 +1019,7 @@ function MarqueeCard({ card }: { card: MarqueeCard }) {
               {card.subtitle}
             </div>
           </div>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 800,
-              padding: '4px 10px',
-              borderRadius: 999,
-              background: 'var(--emerald-50)',
-              color: 'var(--emerald-500)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Available
-          </span>
+          <StatusPill status={card.statusBadge || 'Available'} />
         </div>
         <div style={{ marginTop: 14, fontSize: 15, fontWeight: 800, color: 'var(--slate-900)' }}>
           {card.priceLabel}
