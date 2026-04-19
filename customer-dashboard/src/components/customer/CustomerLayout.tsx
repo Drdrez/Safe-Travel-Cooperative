@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, Link, useLocation } from 'react-router';
-import { Home, LogOut, User, Calendar, CreditCard, MapPin, Zap, Loader2, Wallet, AlertTriangle } from 'lucide-react';
+import {
+  Home,
+  LogOut,
+  User,
+  Calendar,
+  CreditCard,
+  MapPin,
+  Zap,
+  Loader2,
+  Wallet,
+  AlertTriangle,
+  Menu,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { supabase } from '../../lib/supabase';
@@ -13,6 +26,28 @@ export default function CustomerLayout() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const { prefs } = useOpPrefs();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileNavOpen(false);
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [mobileNavOpen]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 1024) setMobileNavOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -173,29 +208,29 @@ export default function CustomerLayout() {
       )}
       {/* Premium Top Navigation */}
       <nav className="top-nav">
-        <div className="nav-content">
-          <div className="flex-start" onClick={() => navigate('/customer')} style={{ cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="nav-content customer-nav-row">
+          <div className="flex-start customer-nav-brand" onClick={() => navigate('/customer')} style={{ cursor: 'pointer', minWidth: 0 }}>
+            <div style={{ width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <img src="/sttc_logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <div style={{ lineHeight: 1 }}>
+            <div style={{ lineHeight: 1, minWidth: 0 }}>
               <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--slate-900)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SAFE TRAVEL</h2>
               <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--brand-gold-dark)', letterSpacing: '0.1em' }}>COOPERATIVE</p>
             </div>
           </div>
 
-          <div className="flex-start" style={{ gap: 4 }}>
+          <div className="customer-nav-links">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn('btn btn-sm', isActive(item.path) ? 'btn-brand' : 'btn-ghost')}
-                style={{ 
-                  padding: '8px 16px', 
+                style={{
+                  padding: '8px 16px',
                   borderRadius: 'var(--radius-md)',
                   color: isActive(item.path) ? 'var(--slate-900)' : 'var(--slate-500)',
                   background: isActive(item.path) ? 'var(--brand-gold)' : 'transparent',
-                  fontWeight: isActive(item.path) ? 800 : 600
+                  fontWeight: isActive(item.path) ? 800 : 600,
                 }}
               >
                 <item.icon size={16} />
@@ -204,25 +239,71 @@ export default function CustomerLayout() {
             ))}
           </div>
 
-          <div className="flex-start" style={{ gap: 12 }}>
-             <NotificationBell />
-             <button
+          <div className="flex-start customer-nav-tools" style={{ gap: 12 }}>
+            <NotificationBell />
+            <button
+              type="button"
               onClick={handleLogout}
-              className="btn btn-outline btn-sm"
+              className="btn btn-outline btn-sm customer-signout-btn"
               style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', background: 'var(--slate-50)', border: 'none' }}
-             >
-                <LogOut size={16} />
-                <span>Sign Out</span>
-             </button>
+            >
+              <LogOut size={16} />
+              <span className="customer-signout-text">Sign Out</span>
+            </button>
+            <button
+              type="button"
+              className="customer-menu-toggle"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu size={22} strokeWidth={2.25} />
+            </button>
           </div>
         </div>
       </nav>
 
-      <main style={{ flex: 1, padding: '40px 32px', maxWidth: 1400, width: '100%', margin: '0 auto' }}>
+      {mobileNavOpen && (
+        <>
+          <div
+            className="customer-mobile-backdrop"
+            role="presentation"
+            onClick={() => setMobileNavOpen(false)}
+            aria-hidden
+          />
+          <div className="customer-mobile-drawer">
+            <div className="customer-mobile-drawer-header">
+              <span style={{ fontWeight: 800, fontSize: 15 }}>Menu</span>
+              <button
+                type="button"
+                className="customer-mobile-drawer-close"
+                onClick={() => setMobileNavOpen(false)}
+                aria-label="Close menu"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <nav className="customer-mobile-drawer-nav">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn('customer-mobile-nav-link', isActive(item.path) && 'active')}
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  <item.icon size={20} />
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </>
+      )}
+
+      <main className="customer-main-inner">
         <Outlet />
       </main>
       
-      <footer style={{ padding: '40px 32px', borderTop: '1px solid var(--slate-100)', textAlign: 'center', maxWidth: 1400, width: '100%', margin: '0 auto' }}>
+      <footer className="customer-footer-inner">
         <p style={{ fontSize: 13, color: 'var(--slate-400)', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span>&copy; {new Date().getFullYear()} Safe Travel & Transport Cooperative. All rights reserved.</span>
           <Link to="/terms" style={{ color: 'var(--brand-gold-dark)', fontWeight: 600 }}>

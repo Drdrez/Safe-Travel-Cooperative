@@ -22,6 +22,7 @@ import { ForgotPassword } from './components/ForgotPassword';
 import { ResetPassword } from './components/ResetPassword';
 import { NotificationBell } from './components/NotificationBell';
 import { Toaster } from 'sonner';
+import { Menu } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 function getUnauthenticatedView(): 'login' | 'forgot-password' | 'reset-password' {
@@ -35,6 +36,7 @@ export default function App() {
   const [activeScreen, setActiveScreen] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -112,24 +114,41 @@ export default function App() {
     );
   }
 
+  const goToScreen = (id: string) => {
+    setActiveScreen(id);
+    setMobileSidebarOpen(false);
+  };
+
   return (
     <div className="app-layout">
       <Sidebar
         activeScreen={activeScreen}
-        onNavigate={setActiveScreen}
+        onNavigate={goToScreen}
         onLogout={handleLogout}
+        mobileOpen={mobileSidebarOpen}
+        onMobileOpenChange={setMobileSidebarOpen}
       />
       <main className="main-content">
         <div
+          className="admin-top-bar"
           style={{
             position: 'sticky', top: 0, zIndex: 40,
-            display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
-            padding: '12px 24px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            padding: '12px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left))',
             background: 'rgba(255,255,255,0.85)',
             backdropFilter: 'blur(8px)',
             borderBottom: '1px solid var(--slate-100)',
           }}
         >
+          <button
+            type="button"
+            className="admin-mobile-menu-btn"
+            onClick={() => setMobileSidebarOpen(true)}
+            aria-label="Open navigation menu"
+          >
+            <Menu size={22} strokeWidth={2.25} />
+          </button>
+          <div style={{ flex: 1 }} />
           <NotificationBell onNavigate={setActiveScreen} />
         </div>
         <div className="page-container" key={activeScreen}>

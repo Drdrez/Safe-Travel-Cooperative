@@ -59,14 +59,52 @@ interface SidebarProps {
   activeScreen: string;
   onNavigate: (id: string) => void;
   onLogout: () => void;
+  mobileOpen: boolean;
+  onMobileOpenChange: (open: boolean) => void;
 }
 
-export function Sidebar({ activeScreen, onNavigate, onLogout }: SidebarProps) {
+export function Sidebar({
+  activeScreen,
+  onNavigate,
+  onLogout,
+  mobileOpen,
+  onMobileOpenChange,
+}: SidebarProps) {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [passForm, setPassForm] = useState({ old: '', new: '', confirm: '' });
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onMobileOpenChange(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileOpen, onMobileOpenChange]);
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      document.body.style.overflow = '';
+      return;
+    }
+    const mq = window.matchMedia('(max-width: 768px)');
+    const apply = () => {
+      if (mq.matches) document.body.style.overflow = 'hidden';
+      else {
+        document.body.style.overflow = '';
+        onMobileOpenChange(false);
+      }
+    };
+    apply();
+    mq.addEventListener('change', apply);
+    return () => {
+      document.body.style.overflow = '';
+      mq.removeEventListener('change', apply);
+    };
+  }, [mobileOpen, onMobileOpenChange]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -161,7 +199,15 @@ export function Sidebar({ activeScreen, onNavigate, onLogout }: SidebarProps) {
 
   return (
     <>
-      <div className="sidebar">
+      {mobileOpen && (
+        <div
+          className="admin-sidebar-backdrop"
+          onClick={() => onMobileOpenChange(false)}
+          role="presentation"
+          aria-hidden
+        />
+      )}
+      <div className={cn('sidebar', mobileOpen && 'sidebar--open')}>
         <div className="sidebar-brand">
           <div style={{ 
             width: 44, height: 44, background: 'white', borderRadius: '50%', 
@@ -217,7 +263,14 @@ export function Sidebar({ activeScreen, onNavigate, onLogout }: SidebarProps) {
             <ChevronDown size={16} style={{ color: 'var(--slate-600)' }} />
           </div>
 
-          <button onClick={onLogout} className="logout-btn">
+          <button
+            type="button"
+            onClick={() => {
+              onLogout();
+              onMobileOpenChange(false);
+            }}
+            className="logout-btn"
+          >
             <LogOut size={16} />
             Sign out
           </button>
@@ -333,7 +386,12 @@ export function Sidebar({ activeScreen, onNavigate, onLogout }: SidebarProps) {
 
                   <div style={{ paddingTop: 24, borderTop: '1px solid var(--slate-100)' }}>
                     <button
-                      onClick={() => { setIsProfileOpen(false); onLogout(); }}
+                      type="button"
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        onLogout();
+                        onMobileOpenChange(false);
+                      }}
                       className="btn btn-danger btn-md w-full"
                     >
                       <LogOut size={16} />

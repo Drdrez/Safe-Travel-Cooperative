@@ -3,6 +3,7 @@ import { MessageSquare, Phone, Mail, ChevronDown, ChevronUp, Search, ExternalLin
 import { toast } from 'sonner';
 import { useLocation } from 'react-router';
 import { supabase } from '../../lib/supabase';
+import { COOP_CONTACT } from '../../lib/contactInfo';
 import { useRealtimeRefresh } from '../../lib/useRealtimeRefresh';
 import { formatDateTime } from '../../lib/date';
 
@@ -227,7 +228,7 @@ export default function Support() {
                 <button 
                     className="btn btn-brand" 
                     style={{ height: 44 }}
-                    onClick={() => window.location.href = 'tel:+63288887233'}
+                    onClick={() => { window.location.href = `tel:${COOP_CONTACT.phoneE164}`; }}
                 >
                     Call Helpline
                 </button>
@@ -329,23 +330,23 @@ export default function Support() {
             </div>
 
             <div className="grid-1" style={{ gap: 16 }}>
-                <a href="tel:+63288887233" className="card flex-start" style={{ padding: 16, gap: 16, textDecoration: 'none', color: 'inherit' }}>
+                <a href={`tel:${COOP_CONTACT.phoneE164}`} className="card flex-start" style={{ padding: 16, gap: 16, textDecoration: 'none', color: 'inherit' }}>
                     <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--slate-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Phone size={18} className="text-slate-600" />
                     </div>
                     <div>
                         <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Live Contact</p>
-                        <p style={{ fontWeight: 700 }}>+63 (2) 8888-SAFE</p>
+                        <p style={{ fontWeight: 700 }}>{COOP_CONTACT.phoneDisplay}</p>
                     </div>
                     <ExternalLink size={14} style={{ marginLeft: 'auto', color: 'var(--slate-300)' }} />
                 </a>
-                <a href="mailto:support@safetravel.coop" className="card flex-start" style={{ padding: 16, gap: 16, textDecoration: 'none', color: 'inherit' }}>
+                <a href={`mailto:${COOP_CONTACT.email}`} className="card flex-start" style={{ padding: 16, gap: 16, textDecoration: 'none', color: 'inherit' }}>
                     <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--slate-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Mail size={18} className="text-slate-600" />
                     </div>
                     <div>
                         <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase' }}>Email Support</p>
-                        <p style={{ fontWeight: 700 }}>support@safetravel.coop</p>
+                        <p style={{ fontWeight: 700 }}>{COOP_CONTACT.email}</p>
                     </div>
                     <ExternalLink size={14} style={{ marginLeft: 'auto', color: 'var(--slate-300)' }} />
                 </a>

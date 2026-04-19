@@ -21,6 +21,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { COOP_CONTACT } from '../../lib/contactInfo';
 import { formatPHP, fromCents } from '../../lib/utils';
 import { useOpPrefs } from '../../lib/useOpPrefs';
 
@@ -677,10 +678,19 @@ export default function Landing() {
             </h5>
             <ul style={{ display: 'grid', gap: 10, fontSize: 13, listStyle: 'none' }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Mail size={14} /> safetravels.transportcoop@gmail.com
+                <Mail size={14} />{' '}
+                <a href={`mailto:${COOP_CONTACT.email}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                  {COOP_CONTACT.email}
+                </a>
               </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <PhoneCall size={14} /> Open 24 hours, every day
+              <li style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexDirection: 'column' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <PhoneCall size={14} />
+                  <a href={`tel:${COOP_CONTACT.phoneE164}`} style={{ color: 'inherit', fontWeight: 700, textDecoration: 'none' }}>
+                    {COOP_CONTACT.phoneDisplay}
+                  </a>
+                </span>
+                <span style={{ fontSize: 12, opacity: 0.85, paddingLeft: 22 }}>Open 24 hours, every day</span>
               </li>
             </ul>
           </div>
