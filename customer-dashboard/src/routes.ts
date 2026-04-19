@@ -11,11 +11,21 @@ import ProfileSettings from "./components/customer/ProfileSettings";
 import Support from "./components/customer/Support";
 import Membership from "./components/customer/Membership";
 import CustomerLayout from "./components/customer/CustomerLayout";
+import PrivacyPolicy from "./components/customer/PrivacyPolicy";
+import TermsOfService from "./components/customer/TermsOfService";
 
 export const router = createBrowserRouter([
   {
     path: "/",
     Component: Landing,
+  },
+  {
+    path: "/privacy",
+    Component: PrivacyPolicy,
+  },
+  {
+    path: "/terms",
+    Component: TermsOfService,
   },
   {
     path: "/login",

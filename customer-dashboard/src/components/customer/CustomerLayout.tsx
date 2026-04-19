@@ -168,8 +168,14 @@ export default function CustomerLayout() {
       </main>
       
       <footer style={{ padding: '40px 32px', borderTop: '1px solid var(--slate-100)', textAlign: 'center', maxWidth: 1400, width: '100%', margin: '0 auto' }}>
-        <p style={{ fontSize: 13, color: 'var(--slate-400)', fontWeight: 500 }}>
-          &copy; 2026 Safe Travel & Transport Cooperative. All rights reserved.
+        <p style={{ fontSize: 13, color: 'var(--slate-400)', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span>&copy; {new Date().getFullYear()} Safe Travel & Transport Cooperative. All rights reserved.</span>
+          <Link to="/terms" style={{ color: 'var(--brand-gold-dark)', fontWeight: 600 }}>
+            Terms of service
+          </Link>
+          <Link to="/privacy" style={{ color: 'var(--brand-gold-dark)', fontWeight: 600 }}>
+            Privacy policy
+          </Link>
         </p>
       </footer>
     </div>

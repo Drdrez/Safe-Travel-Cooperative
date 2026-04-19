@@ -16,6 +16,7 @@ export default function CustomerRegister() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [agreeTermsAndPrivacy, setAgreeTermsAndPrivacy] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -47,6 +48,11 @@ export default function CustomerRegister() {
 
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
+      return;
+    }
+
+    if (!agreeTermsAndPrivacy) {
+      toast.error('Please confirm you agree to the terms of service and privacy policy');
       return;
     }
 
@@ -265,6 +271,37 @@ export default function CustomerRegister() {
                 />
             </div>
           </div>
+
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: 'var(--slate-600)',
+              cursor: 'pointer',
+              marginTop: 8,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={agreeTermsAndPrivacy}
+              onChange={(e) => setAgreeTermsAndPrivacy(e.target.checked)}
+              style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--brand-gold)' }}
+            />
+            <span>
+              I agree to the{' '}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-gold-dark)', fontWeight: 700 }}>
+                terms of service
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-gold-dark)', fontWeight: 700 }}>
+                privacy policy
+              </Link>
+              .
+            </span>
+          </label>
 
           <button
             type="submit"

@@ -692,6 +692,7 @@ export default function Landing() {
             borderTop: '1px solid rgba(255,255,255,0.08)',
             display: 'flex',
             justifyContent: 'space-between',
+            alignItems: 'center',
             flexWrap: 'wrap',
             gap: 8,
             fontSize: 12,
@@ -699,7 +700,15 @@ export default function Landing() {
           }}
         >
           <span>© {new Date().getFullYear()} Safe Travel Transport Cooperative. All rights reserved.</span>
-          <span>Made with care by the cooperative community.</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <Link to="/terms" style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 600 }}>
+              Terms of service
+            </Link>
+            <Link to="/privacy" style={{ color: 'rgba(255,255,255,0.72)', fontWeight: 600 }}>
+              Privacy policy
+            </Link>
+            <span>Made with care by the cooperative community.</span>
+          </span>
         </div>
       </footer>
 
