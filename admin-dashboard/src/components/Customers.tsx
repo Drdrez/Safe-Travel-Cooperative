@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Mail, Phone, MoreVertical, X, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Search, Mail, Phone, MoreVertical, X, Edit, Trash2, RefreshCw, UserRoundCheck } from 'lucide-react';
 import { formatDate } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -32,7 +32,7 @@ export function Customers() {
     setLoading(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, email, contact_number, address, created_at')
+      .select('id, full_name, email, contact_number, address, created_at, deactivated_at')
       .eq('role', 'customer')
       .order('created_at', { ascending: false });
     if (error) toast.error(`Couldn't load customers: ${error.message}`);
@@ -64,6 +64,17 @@ export function Customers() {
     if (error) { toast.error(error.message); return; }
     toast.success('Customer updated');
     setIsFormOpen(false);
+    fetchCustomers();
+  };
+
+  const handleReactivatePortal = async (id: string) => {
+    setOpenMenuId(null);
+    const { error } = await supabase.from('profiles').update({ deactivated_at: null }).eq('id', id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success('Customer portal access restored. They can sign in again.');
     fetchCustomers();
   };
 
@@ -148,7 +159,15 @@ export function Customers() {
                       <p>{formatDate(cust.created_at)}</p>
                     </div>
                   </td>
-                  <td><span className="badge badge-success">ACTIVE</span></td>
+                  <td>
+                    {cust.deactivated_at ? (
+                      <span className="badge badge-warning" title={cust.deactivated_at}>
+                        Portal deactivated
+                      </span>
+                    ) : (
+                      <span className="badge badge-success">Portal active</span>
+                    )}
+                  </td>
                   <td style={{ position: 'relative' }}>
                     <button className="btn-icon" onClick={() => setOpenMenuId(openMenuId === cust.id ? null : cust.id)}>
                       <MoreVertical size={16} />
@@ -158,6 +177,18 @@ export function Customers() {
                         <button className="dropdown-item" onClick={() => openEditForm(cust)}>
                           <Edit size={14} /> Edit Customer
                         </button>
+                        {cust.deactivated_at && (
+                          <button
+                            className="dropdown-item"
+                            onClick={() => {
+                              if (confirm('Restore this customer’s access to the customer portal? They will be able to sign in again.')) {
+                                handleReactivatePortal(cust.id);
+                              }
+                            }}
+                          >
+                            <UserRoundCheck size={14} /> Reactivate portal
+                          </button>
+                        )}
                         <div className="dropdown-separator" />
                         <button className="dropdown-item danger" onClick={() => handleDelete(cust.id)}>
                           <Trash2 size={14} /> Delete Customer
