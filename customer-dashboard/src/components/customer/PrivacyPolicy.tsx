@@ -149,8 +149,32 @@ export default function PrivacyPolicy() {
             </p>
           </section>
 
+          <section id="account-deactivation" style={{ marginBottom: 28 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>
+              8. Deactivating your customer account
+            </h2>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)', marginBottom: 12 }}>
+              If you use the customer portal, you may <strong>deactivate</strong> your account from Profile
+              settings. Deactivation means we mark your account so you can no longer sign in to the portal
+              until the cooperative clears that status (for example after you contact us and we verify your
+              request).
+            </p>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)', marginBottom: 12 }}>
+              <strong>Deactivation is not the same as erasing all data.</strong> We may keep information
+              required for accounting, disputes, safety, and legal compliance—including past trips,
+              reservations, and billing history—even after you deactivate. How long we retain data is
+              described in the Retention section above.
+            </p>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
+              To request <strong>reinstatement</strong> of portal access, or to discuss{' '}
+              <strong>stronger deletion or anonymization</strong> of your information, email us at the
+              address in section 1. We will respond in line with applicable law and our operational
+              capabilities.
+            </p>
+          </section>
+
           <section style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>8. Cookies and similar technologies</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>9. Cookies and similar technologies</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               We may use cookies or local storage to keep you signed in and to remember preferences. You
               can control cookies through your browser settings; disabling some cookies may limit certain
@@ -159,7 +183,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>9. Changes</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>10. Changes</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               We may update this policy from time to time. We will post the revised version on this page and
               update the “Last updated” date. Continued use of the services after changes means you accept

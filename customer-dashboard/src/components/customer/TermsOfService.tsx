@@ -87,8 +87,33 @@ export default function TermsOfService() {
             </p>
           </section>
 
+          <section id="account-deactivation" style={{ marginBottom: 28 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>
+              3. Deactivating your customer account
+            </h2>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)', marginBottom: 12 }}>
+              You may deactivate access to the <strong>customer portal</strong> using the control provided in
+              Profile settings. Deactivation ends your ability to sign in to that portal until we restore
+              access (for example after you contact the cooperative and we agree to clear the deactivation
+              flag).
+            </p>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)', marginBottom: 12 }}>
+              Deactivation does <strong>not</strong> by itself delete all data we hold. We may retain records
+              relating to bookings, payments, vehicles, and legal obligations as described in our{' '}
+              <Link to="/privacy#account-deactivation" style={{ color: 'var(--brand-gold-dark)', fontWeight: 600 }}>
+                Privacy policy
+              </Link>
+              . Nothing in this section limits our right to suspend access for security, fraud prevention, or
+              legal reasons.
+            </p>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
+              If you need a different outcome—such as help with data access, correction, or a stronger
+              erasure request—contact us at the email in the Contact section.
+            </p>
+          </section>
+
           <section style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>3. Services</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>4. Services</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               We provide cooperative transport–related services as described on this site (including
               reservations, tracking where available, and member features). Features may change; we may
@@ -97,7 +122,7 @@ export default function TermsOfService() {
           </section>
 
           <section style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>4. Bookings, fees, and payment</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>5. Bookings, fees, and payment</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               Prices shown before you confirm a booking are part of your agreement for that trip. Payment
               methods, taxes, and cooperative fees (if any) will be as stated at checkout or in your
@@ -107,7 +132,7 @@ export default function TermsOfService() {
           </section>
 
           <section style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>5. Cancellations and changes</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>6. Cancellations and changes</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               Cancellation and reschedule rules (including any fees or windows) are those published in the
               app or communicated at booking. We may cancel or reassign trips for safety, weather,
@@ -116,7 +141,7 @@ export default function TermsOfService() {
           </section>
 
           <section style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>6. Acceptable use</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>7. Acceptable use</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               You will not misuse the services (for example: fraud, harassment of drivers or staff,
               interfering with systems, or violating applicable law). We may suspend or terminate access for
@@ -125,7 +150,7 @@ export default function TermsOfService() {
           </section>
 
           <section style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>7. Disclaimers</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>8. Disclaimers</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               Services are provided on an “as is” and “as available” basis to the extent permitted by law.
               We do not guarantee uninterrupted or error-free operation. Nothing in these terms excludes
@@ -134,7 +159,7 @@ export default function TermsOfService() {
           </section>
 
           <section style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>8. Limitation of liability</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>9. Limitation of liability</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               To the maximum extent permitted by law, our total liability arising out of these terms or the
               services is limited to the amount you paid us for the specific transaction giving rise to
@@ -145,7 +170,7 @@ export default function TermsOfService() {
           </section>
 
           <section style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>9. Indemnity</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>10. Indemnity</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               You agree to defend and indemnify us against third-party claims arising from your misuse of
               the services or violation of these terms, to the extent permitted by law.
@@ -153,7 +178,7 @@ export default function TermsOfService() {
           </section>
 
           <section style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>10. Changes to these terms</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>11. Changes to these terms</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               We may update these terms by posting a new version on this page and changing the “Last
               updated” date. Continued use after changes constitutes acceptance, except where your consent
@@ -162,7 +187,7 @@ export default function TermsOfService() {
           </section>
 
           <section style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>11. Governing law</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>12. Governing law</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               These terms are governed by the laws of the Philippines, without regard to conflict-of-law
               rules, unless your counsel specifies a different approach. Disputes may be brought in the
@@ -171,7 +196,7 @@ export default function TermsOfService() {
           </section>
 
           <section style={{ marginBottom: 8 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>12. Contact</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>13. Contact</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               Questions about these terms:{' '}
               <a href="mailto:safetravels.transportcoop@gmail.com" style={{ color: 'var(--brand-gold-dark)', fontWeight: 600 }}>

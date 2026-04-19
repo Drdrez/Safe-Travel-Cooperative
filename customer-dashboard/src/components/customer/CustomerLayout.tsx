@@ -26,9 +26,23 @@ export default function CustomerLayout() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, deactivated_at')
         .eq('id', session.user.id)
         .single();
+
+      if (profile?.deactivated_at) {
+        await supabase.auth.signOut();
+        if (isMounted) {
+          localStorage.removeItem('customerLoggedIn');
+          localStorage.removeItem('customerName');
+          localStorage.removeItem('customerEmail');
+          toast.error(
+            'This account has been deactivated. Contact the cooperative if you need access again.'
+          );
+          navigate('/login', { replace: true });
+        }
+        return;
+      }
 
       if (profile?.role && profile.role !== 'customer') {
         await supabase.auth.signOut();

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { User, Eye, EyeOff, Loader2, BadgeCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import { User, Eye, EyeOff, Loader2, BadgeCheck, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 
 export default function ProfileSettings() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -24,6 +26,9 @@ export default function ProfileSettings() {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [deactivateOpen, setDeactivateOpen] = useState(false);
+  const [deactivateConfirm, setDeactivateConfirm] = useState('');
+  const [deactivating, setDeactivating] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -125,6 +130,41 @@ export default function ProfileSettings() {
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeactivateAccount = async () => {
+    if (deactivateConfirm.trim().toUpperCase() !== 'DEACTIVATE') {
+      toast.error('Type DEACTIVATE to confirm.');
+      return;
+    }
+    setDeactivating(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Session expired.');
+        return;
+      }
+      const { error } = await supabase
+        .from('profiles')
+        .update({ deactivated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      await supabase.auth.signOut();
+      localStorage.removeItem('customerLoggedIn');
+      localStorage.removeItem('customerName');
+      localStorage.removeItem('customerEmail');
+      toast.success('Your account has been deactivated.');
+      navigate('/', { replace: true });
+    } finally {
+      setDeactivating(false);
+      setDeactivateOpen(false);
+      setDeactivateConfirm('');
     }
   };
 
@@ -284,7 +324,142 @@ export default function ProfileSettings() {
               </div>
            </form>
         </div>
+
+        <div
+          className="card"
+          style={{
+            padding: '32px 48px',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            background: 'linear-gradient(180deg, rgba(254, 242, 242, 0.9) 0%, #fff 100%)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 16 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: 'rgba(239, 68, 68, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <AlertTriangle size={22} style={{ color: 'var(--red-600, #dc2626)' }} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--slate-900)', marginBottom: 8 }}>
+                Deactivate your account
+              </h3>
+              <p style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--slate-600)', marginBottom: 12 }}>
+                Deactivation signs you out and blocks access to this customer portal until the cooperative clears
+                it (for example after you contact{' '}
+                <a href="mailto:safetravels.transportcoop@gmail.com" style={{ fontWeight: 700, color: 'var(--brand-gold-dark)' }}>
+                  safetravels.transportcoop@gmail.com
+                </a>
+                ). It is <strong>not</strong> the same as deleting all data: we may keep billing and trip records
+                as described in our policies and applicable law.
+              </p>
+              <p style={{ fontSize: 13, color: 'var(--slate-500)', marginBottom: 16 }}>
+                Read the full wording in our{' '}
+                <Link to="/privacy#account-deactivation" style={{ fontWeight: 700, color: 'var(--brand-gold-dark)' }}>
+                  Privacy policy
+                </Link>{' '}
+                and{' '}
+                <Link to="/terms#account-deactivation" style={{ fontWeight: 700, color: 'var(--brand-gold-dark)' }}>
+                  Terms of service
+                </Link>
+                .
+              </p>
+              <button
+                type="button"
+                onClick={() => setDeactivateOpen(true)}
+                className="btn"
+                style={{
+                  height: 48,
+                  padding: '0 24px',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  background: 'white',
+                  border: '1px solid rgba(239, 68, 68, 0.45)',
+                  color: '#b91c1c',
+                }}
+              >
+                Deactivate my account
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {deactivateOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            background: 'rgba(15, 23, 42, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+          }}
+          onClick={() => !deactivating && setDeactivateOpen(false)}
+        >
+          <div
+            className="card"
+            style={{ maxWidth: 440, width: '100%', padding: 28 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 style={{ fontSize: 17, fontWeight: 800, marginBottom: 12 }}>Confirm deactivation</h4>
+            <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--slate-600)', marginBottom: 16 }}>
+              You will lose access to bookings, billing, and tracking until the cooperative re-enables your
+              account. Type <strong>DEACTIVATE</strong> to confirm.
+            </p>
+            <input
+              type="text"
+              value={deactivateConfirm}
+              onChange={(e) => setDeactivateConfirm(e.target.value)}
+              placeholder="DEACTIVATE"
+              autoComplete="off"
+              style={{
+                width: '100%',
+                height: 44,
+                marginBottom: 20,
+                padding: '0 14px',
+                borderRadius: 10,
+                border: '1px solid var(--slate-200)',
+                fontSize: 14,
+              }}
+            />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                disabled={deactivating}
+                className="btn btn-outline"
+                onClick={() => {
+                  setDeactivateOpen(false);
+                  setDeactivateConfirm('');
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deactivating}
+                onClick={handleDeactivateAccount}
+                className="btn"
+                style={{ background: '#b91c1c', color: 'white', border: 'none' }}
+              >
+                {deactivating ? <Loader2 className="animate-spin" /> : 'Deactivate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

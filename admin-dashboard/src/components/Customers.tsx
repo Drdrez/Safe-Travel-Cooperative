@@ -68,7 +68,12 @@ export function Customers() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this customer profile? Their Supabase auth account will remain but will no longer be linked.')) return;
+    if (
+      !confirm(
+        'Delete this customer? Their reservations and billing rows for this account will be removed. Their Supabase login account will remain unless you delete it separately in the Supabase dashboard.'
+      )
+    )
+      return;
     const { error } = await supabase.from('profiles').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Customer deleted');

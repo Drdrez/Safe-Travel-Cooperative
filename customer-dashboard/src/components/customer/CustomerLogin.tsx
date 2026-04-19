@@ -28,9 +28,17 @@ export default function CustomerLogin() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, role')
+        .select('full_name, role, deactivated_at')
         .eq('id', data.user.id)
         .single();
+
+      if (profile?.deactivated_at) {
+        await supabase.auth.signOut();
+        toast.error(
+          'This account is deactivated. See our Privacy policy for details, or contact the cooperative to discuss reactivation.'
+        );
+        return;
+      }
 
       if (profile?.role && profile.role !== 'customer') {
         await supabase.auth.signOut();
