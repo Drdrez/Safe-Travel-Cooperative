@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, DollarSign, Calendar, Loader2, CheckCircle2, QrCode, Clock, Download, Ban } from 'lucide-react';
+import { CreditCard, DollarSign, Calendar, Loader2, CheckCircle2, QrCode, Clock, Download, Ban, X, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatPHP, fromCents } from '../../lib/utils';
 import { formatDate } from '../../lib/date';
@@ -338,34 +338,114 @@ export default function BillingPayment() {
       {/* Payment Modal */}
       {showPaymentModal && selectedBill && (
         <Portal>
-          <div className="modal-backdrop">
-             <div className="modal" style={{ maxWidth: 480, padding: 0, overflow: 'hidden' }}>
-                <div style={{ background: 'var(--slate-900)', padding: 32, color: 'white' }}>
-                   <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>Pay Invoice</p>
-                   <h2 style={{ color: 'white', marginBottom: 2 }}>{selectedBill.billing_id_str}</h2>
-                   <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>Due on {formatDate(selectedBill.due_date)}</p>
-                   <div style={{ marginTop: 24, padding: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <div className="flex-between">
-                         <span style={{ fontSize: 13 }}>Amount to Pay</span>
-                         <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--brand-gold)' }}>{formatPHP(fromCents(selectedBill.amount_cents))}</span>
-                      </div>
-                   </div>
+          <div
+            className="modal-backdrop"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowPaymentModal(false);
+            }}
+          >
+             <div className="modal modal-md" style={{ maxWidth: 480, padding: 28 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, gap: 16 }}>
+                  <div>
+                    <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--indigo-900)', letterSpacing: '-0.02em', marginBottom: 6 }}>
+                      Complete Payment
+                    </h2>
+                    <p style={{ fontSize: 13, color: 'var(--slate-500)', fontWeight: 500 }}>
+                      Due {formatDate(selectedBill.due_date)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="modal-close"
+                    onClick={() => setShowPaymentModal(false)}
+                    aria-label="Close"
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 'var(--radius-md)',
+                      border: 'none',
+                      background: 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--slate-400)',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <X size={20} />
+                  </button>
                 </div>
-                <div style={{ padding: 32 }} className="space-y-6">
-                    <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                       <label style={{ fontSize: 12, fontWeight: 800, color: 'var(--slate-500)', textTransform: 'uppercase' }}>Choose Payment Method</label>
-                       <select 
-                           value={paymentMethod} 
-                           onChange={(e) => setPaymentMethod(e.target.value)}
-                           style={{ width: '100%', height: 48, padding: '0 16px', borderRadius: 12, background: 'var(--slate-50)', border: '1px solid var(--slate-100)', fontWeight: 700 }}
-                       >
-                           <option value="">Select Method</option>
-                           <option value="GCash">GCash Checkout</option>
-                           <option value="PayMaya">PayMaya Wallet</option>
-                           <option value="Credit Card">Credit / Debit Card</option>
-                           <option value="Bank Transfer">Direct Bank Transfer</option>
-                       </select>
-                    </div>
+
+                <div
+                  style={{
+                    background: '#fff9e6',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '18px 20px',
+                    marginBottom: 24,
+                    border: '1px solid #fde68a',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate-500)' }}>Bill ID:</span>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--indigo-900)' }}>{selectedBill.billing_id_str}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate-500)' }}>Amount Due:</span>
+                    <span style={{ fontSize: 26, fontWeight: 800, color: 'var(--indigo-900)', lineHeight: 1.1 }}>
+                      {formatPHP(fromCents(selectedBill.amount_cents))}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+                  <label htmlFor="payment-method-select" style={{ fontSize: 14, fontWeight: 700, color: 'var(--indigo-900)' }}>
+                    Payment Method
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      id="payment-method-select"
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      style={{
+                        width: '100%',
+                        height: 48,
+                        padding: '0 44px 0 16px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--slate-200)',
+                        background: 'white',
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: paymentMethod ? 'var(--slate-900)' : 'var(--slate-400)',
+                        cursor: 'pointer',
+                        appearance: 'none',
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'none',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <option value="">Select payment method</option>
+                      <option value="GCash">GCash</option>
+                      <option value="PayMaya">PayMaya</option>
+                      <option value="Credit Card">Credit Card</option>
+                      <option value="Debit Card">Debit Card</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                    </select>
+                    <ChevronDown
+                      size={20}
+                      aria-hidden
+                      style={{
+                        position: 'absolute',
+                        right: 14,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: 'var(--slate-400)',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  </div>
+                </div>
 
                     {/* QR Section for e-wallets */}
                     {['GCash', 'PayMaya'].includes(paymentMethod) && (
@@ -417,7 +497,6 @@ export default function BillingPayment() {
                            {isProcessing ? <Loader2 className="animate-spin" /> : 'Confirm Payment'}
                        </button>
                     </div>
-                </div>
              </div>
           </div>
         </Portal>

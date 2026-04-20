@@ -52,6 +52,22 @@ type Ticket = {
   reservations?: { reservation_id_str: string | null } | null;
 };
 
+/** Supabase may return an embedded FK as one object or a one-element array. */
+function normalizeEmbeddedReservation(
+  r:
+    | { reservation_id_str: string | null }
+    | { reservation_id_str: string | null }[]
+    | null
+    | undefined,
+): { reservation_id_str: string | null } | null {
+  if (r == null) return null;
+  return Array.isArray(r) ? r[0] ?? null : r;
+}
+
+function ticketReservationRef(t: Ticket): string | null {
+  return t.reservations?.reservation_id_str ?? null;
+}
+
 export default function Support() {
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
@@ -103,7 +119,16 @@ export default function Support() {
       // Table may not exist if migration wasn't run yet — don't be noisy.
       console.warn('[support] could not load tickets:', error.message);
     }
-    if (data) setTickets(data as Ticket[]);
+    if (data) {
+      setTickets(
+        (data as Array<Omit<Ticket, 'reservations'> & {
+          reservations?: { reservation_id_str: string | null } | { reservation_id_str: string | null }[] | null;
+        }>).map((row) => ({
+          ...row,
+          reservations: normalizeEmbeddedReservation(row.reservations),
+        })),
+      );
+    }
     setLoadingTickets(false);
   };
 
@@ -305,15 +330,17 @@ export default function Support() {
                     <p style={{ fontSize: 13, color: 'var(--slate-400)' }}>No messages yet. Send your first one above.</p>
                 ) : (
                     <div className="space-y-3">
-                        {tickets.map(t => (
+                        {tickets.map(t => {
+                          const tripRef = ticketReservationRef(t);
+                          return (
                             <div key={t.id} style={{ padding: 14, background: 'var(--slate-50)', borderRadius: 12, border: '1px solid var(--slate-100)' }}>
                                 <div className="flex-between" style={{ marginBottom: 6 }}>
                                     <span style={{ fontWeight: 700, fontSize: 13 }}>{t.subject}</span>
                                     <span className={`status-badge status-badge-${t.status.toLowerCase().replace(/\s+/g, '-')}`}>{t.status}</span>
                                 </div>
-                                {t.reservations?.reservation_id_str && (
+                                {tripRef && (
                                   <p style={{ fontSize: 11, color: 'var(--indigo-600)', fontWeight: 700, marginBottom: 4 }}>
-                                    Re: trip {t.reservations.reservation_id_str}
+                                    Re: trip {tripRef}
                                   </p>
                                 )}
                                 <p style={{ fontSize: 12, color: 'var(--slate-600)', marginBottom: 8 }}>{t.message}</p>
@@ -327,7 +354,8 @@ export default function Support() {
                                 )}
                                 <p style={{ fontSize: 10, color: 'var(--slate-400)', marginTop: 8 }}>Sent {formatDateTime(t.created_at)}</p>
                             </div>
-                        ))}
+                          );
+                        })}
                     </div>
                 )}
             </div>
