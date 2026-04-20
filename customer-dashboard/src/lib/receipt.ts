@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { formatPHP, fromCents } from './utils';
+import { formatPHPForPdf, fromCents } from './utils';
 
 export type ReceiptInput = {
   receiptNumber: string;
@@ -45,11 +45,8 @@ export function generateReceiptPdf(input: ReceiptInput) {
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.text(`OR No.: ${input.receiptNumber}`, left, y);
-  doc.text(
-    `Date: ${input.paidAt ? new Date(input.paidAt).toLocaleString() : new Date().toLocaleString()}`,
-    pageWidth - left - 220,
-    y,
-  );
+  const dateLine = `Date: ${input.paidAt ? new Date(input.paidAt).toLocaleString() : new Date().toLocaleString()}`;
+  doc.text(dateLine, pageWidth - left - doc.getTextWidth(dateLine), y);
   y += 22;
 
   const rows: Array<[string, string]> = [
@@ -57,7 +54,7 @@ export function generateReceiptPdf(input: ReceiptInput) {
     ['Email', input.customerEmail || '—'],
     ['Phone', input.customerPhone || '—'],
     ['Reservation', input.reservationRef || '—'],
-    ['Vehicle', input.vehicle || '—'],
+    ['Vehicle', input.vehicle || 'Not yet assigned'],
     ['Pickup', input.pickup || '—'],
     ['Destination', input.destination || '—'],
     ['Start Date', input.startDate ? new Date(input.startDate).toLocaleDateString() : '—'],
@@ -84,7 +81,8 @@ export function generateReceiptPdf(input: ReceiptInput) {
   doc.setFont('helvetica', 'bold');
   doc.text('Amount Received', left, y);
   doc.setFontSize(16);
-  doc.text(formatPHP(fromCents(input.amountCents)), pageWidth - left - 140, y);
+  const amountLine = formatPHPForPdf(fromCents(input.amountCents));
+  doc.text(amountLine, pageWidth - left - doc.getTextWidth(amountLine), y);
   y += 28;
 
   doc.setFontSize(9);

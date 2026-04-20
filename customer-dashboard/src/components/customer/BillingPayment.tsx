@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CreditCard, DollarSign, Calendar, Loader2, CheckCircle2, QrCode, Clock, Download, Ban, X, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatPHP, fromCents } from '../../lib/utils';
+import { formatPHP, formatVehicleLine, fromCents } from '../../lib/utils';
 import { formatDate } from '../../lib/date';
 import { supabase } from '../../lib/supabase';
 import { useRealtimeRefresh } from '../../lib/useRealtimeRefresh';
@@ -150,11 +150,7 @@ export default function BillingPayment() {
 
   const downloadReceipt = (bill: Bill) => {
     try {
-      const vehicle = bill.reservations?.vehicles
-        ? `${bill.reservations.vehicles.model ?? ''}${
-            bill.reservations.vehicles.plate_number ? ` (${bill.reservations.vehicles.plate_number})` : ''
-          }`.trim() || null
-        : null;
+      const vehicle = formatVehicleLine(bill.reservations?.vehicles ?? undefined);
       generateReceiptPdf({
         receiptNumber: bill.billing_id_str,
         paidAt: bill.paid_at ?? null,

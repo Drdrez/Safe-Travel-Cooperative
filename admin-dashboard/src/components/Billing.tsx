@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DollarSign, CreditCard, X, Clock, CheckCircle2, Loader2, Search, Download } from 'lucide-react';
-import { formatPHP, fromCents } from '@/lib/formatters';
+import { formatPHP, formatVehicleLine, fromCents } from '@/lib/formatters';
 import { formatDate } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -43,7 +43,7 @@ const downloadReceipt = (b: Bill) => {
       customerEmail: b.profiles?.email || null,
       customerPhone: b.profiles?.contact_number || null,
       reservationRef: b.reservations?.reservation_id_str || b.reservation_id,
-      vehicle: b.reservations?.vehicles ? `${b.reservations.vehicles.model} — ${b.reservations.vehicles.plate_number}` : null,
+      vehicle: formatVehicleLine(b.reservations?.vehicles ?? undefined),
       pickup: b.reservations?.pickup_location || null,
       destination: b.reservations?.destination || null,
       startDate: b.reservations?.start_date || null,
