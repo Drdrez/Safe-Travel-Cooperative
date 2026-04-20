@@ -1,0 +1,4 @@
+# Minimal config for Edge Functions. Adjust project_id for local `supabase` CLI if needed.
+
+[functions.create-staff]
+verify_jwt = true

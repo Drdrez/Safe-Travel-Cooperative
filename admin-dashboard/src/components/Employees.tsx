@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { UserPlus, Mail, Phone, MoreVertical, Search, X, Edit, Trash2, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, edgeFunctionErrorMessage } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Portal } from './ui/Portal';
@@ -105,28 +105,50 @@ export function Employees() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const payload = {
-      full_name: form.name,
-      email: form.email,
-      role: form.role,
-      contact_number: form.phone || null,
-      hire_date: form.hire_date || null,
-      job_title: form.job_title || null,
-      employment_status: form.employment_status,
-      license_number: form.license_number || null,
-      license_expiry: form.license_expiry || null,
-      emergency_contact: form.emergency_contact || null,
-      base_rate_cents: form.base_rate_php ? toCents(Number(form.base_rate_php)) : 0,
-      rate_period: form.rate_period,
-    };
-    const { error } = editingEmp
-      ? await supabase.from('profiles').update(payload).eq('id', editingEmp.id)
-      : await supabase.from('profiles').insert([payload]);
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success(editingEmp ? 'Personnel updated' : 'Personnel added');
-    setIsFormOpen(false);
-    fetchEmployees();
+    try {
+      const payload = {
+        full_name: form.name,
+        email: form.email,
+        role: form.role,
+        contact_number: form.phone || null,
+        hire_date: form.hire_date || null,
+        job_title: form.job_title || null,
+        employment_status: form.employment_status,
+        license_number: form.license_number || null,
+        license_expiry: form.license_expiry || null,
+        emergency_contact: form.emergency_contact || null,
+        base_rate_cents: form.base_rate_php ? toCents(Number(form.base_rate_php)) : 0,
+        rate_period: form.rate_period,
+      };
+      if (editingEmp) {
+        const { error } = await supabase.from('profiles').update(payload).eq('id', editingEmp.id);
+        if (error) { toast.error(error.message); return; }
+      } else {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('create-staff', {
+          body: {
+            email: form.email.trim(),
+            role: form.role,
+            full_name: form.name,
+            contact_number: form.phone || null,
+            hire_date: form.hire_date || null,
+            job_title: form.job_title || null,
+            employment_status: form.employment_status,
+            license_number: form.license_number || null,
+            license_expiry: form.license_expiry || null,
+            emergency_contact: form.emergency_contact || null,
+            base_rate_cents: form.base_rate_php ? toCents(Number(form.base_rate_php)) : 0,
+            rate_period: form.rate_period,
+          },
+        });
+        const fnMsg = edgeFunctionErrorMessage(fnData, fnError);
+        if (fnMsg) { toast.error(fnMsg); return; }
+      }
+      toast.success(editingEmp ? 'Personnel updated' : 'Personnel added');
+      setIsFormOpen(false);
+      fetchEmployees();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {

@@ -7,7 +7,7 @@ import { useRealtimeRefresh } from '@/lib/useRealtimeRefresh';
 import { usePagination, TablePagination } from '@/lib/usePagination';
 import { formatPHP, fromCents } from '@/lib/formatters';
 import { formatDate } from '@/lib/date';
-import { cn } from '@/lib/utils';
+import { cn, edgeFunctionErrorMessage } from '@/lib/utils';
 
 type Driver = {
   id: string;
@@ -54,6 +54,7 @@ export function Drivers() {
   const [perfDriver, setPerfDriver] = useState<Driver | null>(null);
   const [perfTrips, setPerfTrips] = useState<Trip[]>([]);
   const [perfLoading, setPerfLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { fetchDrivers(); }, []);
@@ -97,21 +98,40 @@ export function Drivers() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = {
-      full_name: form.name,
-      email: form.email,
-      contact_number: form.phone || null,
-      license_number: form.license_number || null,
-      license_expiry: form.license_expiry || null,
-      role: 'driver',
-    };
-    const { error } = editingDriver
-      ? await supabase.from('profiles').update(payload).eq('id', editingDriver.id)
-      : await supabase.from('profiles').insert([payload]);
-    if (error) { toast.error(error.message); return; }
-    toast.success(editingDriver ? 'Driver updated' : 'Driver added');
-    setIsFormOpen(false);
-    fetchDrivers();
+    setSaving(true);
+    try {
+      const payload = {
+        full_name: form.name,
+        email: form.email,
+        contact_number: form.phone || null,
+        license_number: form.license_number || null,
+        license_expiry: form.license_expiry || null,
+        role: 'driver',
+      };
+      if (editingDriver) {
+        const { error } = await supabase.from('profiles').update(payload).eq('id', editingDriver.id);
+        if (error) { toast.error(error.message); return; }
+      } else {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('create-staff', {
+          body: {
+            email: form.email.trim(),
+            role: 'driver',
+            full_name: form.name,
+            contact_number: form.phone || null,
+            license_number: form.license_number || null,
+            license_expiry: form.license_expiry || null,
+            employment_status: 'Active',
+          },
+        });
+        const fnMsg = edgeFunctionErrorMessage(fnData, fnError);
+        if (fnMsg) { toast.error(fnMsg); return; }
+      }
+      toast.success(editingDriver ? 'Driver updated' : 'Driver added');
+      setIsFormOpen(false);
+      fetchDrivers();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -247,7 +267,9 @@ export function Drivers() {
                   <div className="form-group"><label className="form-label">License Number</label><input className="form-input" value={form.license_number} onChange={e => setForm({ ...form, license_number: e.target.value })} placeholder="N01-12-345678" /></div>
                   <div className="form-group"><label className="form-label">License Expiry</label><input className="form-input" type="date" value={form.license_expiry} onChange={e => setForm({ ...form, license_expiry: e.target.value })} /></div>
                 </div>
-                <button type="submit" className="btn btn-brand btn-lg w-full" style={{ marginTop: 8 }}>{editingDriver ? 'Save Changes' : 'Add Driver'}</button>
+                <button type="submit" className="btn btn-brand btn-lg w-full" style={{ marginTop: 8 }} disabled={saving}>
+                  {saving ? 'Saving…' : (editingDriver ? 'Save Changes' : 'Add Driver')}
+                </button>
               </form>
             </div>
           </div>
