@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { UserPlus, Mail, Phone, MoreVertical, Search, X, Edit, Trash2, AlertTriangle } from 'lucide-react';
-import { cn, edgeFunctionErrorMessage } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { cn } from '@/lib/utils';
+import { supabase, invokeEdgeFunction } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Portal } from './ui/Portal';
 import { useRealtimeRefresh } from '@/lib/useRealtimeRefresh';
@@ -124,24 +124,21 @@ export function Employees() {
         const { error } = await supabase.from('profiles').update(payload).eq('id', editingEmp.id);
         if (error) { toast.error(error.message); return; }
       } else {
-        const { data: fnData, error: fnError } = await supabase.functions.invoke('create-staff', {
-          body: {
-            email: form.email.trim(),
-            role: form.role,
-            full_name: form.name,
-            contact_number: form.phone || null,
-            hire_date: form.hire_date || null,
-            job_title: form.job_title || null,
-            employment_status: form.employment_status,
-            license_number: form.license_number || null,
-            license_expiry: form.license_expiry || null,
-            emergency_contact: form.emergency_contact || null,
-            base_rate_cents: form.base_rate_php ? toCents(Number(form.base_rate_php)) : 0,
-            rate_period: form.rate_period,
-          },
+        const { error: fnErr } = await invokeEdgeFunction('create-staff', {
+          email: form.email.trim(),
+          role: form.role,
+          full_name: form.name,
+          contact_number: form.phone || null,
+          hire_date: form.hire_date || null,
+          job_title: form.job_title || null,
+          employment_status: form.employment_status,
+          license_number: form.license_number || null,
+          license_expiry: form.license_expiry || null,
+          emergency_contact: form.emergency_contact || null,
+          base_rate_cents: form.base_rate_php ? toCents(Number(form.base_rate_php)) : 0,
+          rate_period: form.rate_period,
         });
-        const fnMsg = edgeFunctionErrorMessage(fnData, fnError);
-        if (fnMsg) { toast.error(fnMsg); return; }
+        if (fnErr) { toast.error(fnErr); return; }
       }
       toast.success(editingEmp ? 'Personnel updated' : 'Personnel added');
       setIsFormOpen(false);

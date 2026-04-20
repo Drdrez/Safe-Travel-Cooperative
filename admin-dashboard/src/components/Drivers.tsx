@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Phone, CreditCard, MoreVertical, X, Edit, Trash2, BarChart3 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase, invokeEdgeFunction } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Portal } from './ui/Portal';
 import { useRealtimeRefresh } from '@/lib/useRealtimeRefresh';
 import { usePagination, TablePagination } from '@/lib/usePagination';
 import { formatPHP, fromCents } from '@/lib/formatters';
 import { formatDate } from '@/lib/date';
-import { cn, edgeFunctionErrorMessage } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 type Driver = {
   id: string;
@@ -112,19 +112,16 @@ export function Drivers() {
         const { error } = await supabase.from('profiles').update(payload).eq('id', editingDriver.id);
         if (error) { toast.error(error.message); return; }
       } else {
-        const { data: fnData, error: fnError } = await supabase.functions.invoke('create-staff', {
-          body: {
-            email: form.email.trim(),
-            role: 'driver',
-            full_name: form.name,
-            contact_number: form.phone || null,
-            license_number: form.license_number || null,
-            license_expiry: form.license_expiry || null,
-            employment_status: 'Active',
-          },
+        const { error: fnErr } = await invokeEdgeFunction('create-staff', {
+          email: form.email.trim(),
+          role: 'driver',
+          full_name: form.name,
+          contact_number: form.phone || null,
+          license_number: form.license_number || null,
+          license_expiry: form.license_expiry || null,
+          employment_status: 'Active',
         });
-        const fnMsg = edgeFunctionErrorMessage(fnData, fnError);
-        if (fnMsg) { toast.error(fnMsg); return; }
+        if (fnErr) { toast.error(fnErr); return; }
       }
       toast.success(editingDriver ? 'Driver updated' : 'Driver added');
       setIsFormOpen(false);
