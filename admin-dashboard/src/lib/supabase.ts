@@ -33,6 +33,8 @@ export async function invokeEdgeFunction<T = CreateStaffResponse>(
     return { data: null, error: 'Missing Supabase URL or anon key.' };
   }
 
+  // Edge Functions with verify_jwt validate the access token at the gateway. Stale tokens → 401 before our code runs.
+  await supabase.auth.refreshSession();
   const { data: sess, error: sessErr } = await supabase.auth.getSession();
   const token = sess.session?.access_token;
   if (sessErr || !token) {
@@ -72,6 +74,13 @@ export async function invokeEdgeFunction<T = CreateStaffResponse>(
   }
 
   if (!res.ok) {
+    if (res.status === 401) {
+      return {
+        data: null,
+        error:
+          'Could not verify your login with the server. Please sign out, sign in again, then retry. If this continues, confirm VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY match this project.',
+      };
+    }
     return { data: null, error: `Request failed (${res.status})` };
   }
 

@@ -1,4 +1,7 @@
 # Minimal config for Edge Functions. Adjust project_id for local `supabase` CLI if needed.
-
+#
+# Matches Dashboard: Settings → "Verify JWT with legacy secret" → OFF.
+# When ON, the gateway often returns 401 for normal user session tokens; create-staff still
+# checks auth inside the function (getUser + admin profile).
 [functions.create-staff]
-verify_jwt = true
+verify_jwt = false

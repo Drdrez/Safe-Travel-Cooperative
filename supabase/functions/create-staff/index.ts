@@ -1,3 +1,6 @@
+// Dashboard: Edge Functions → create-staff → Settings → turn OFF "Verify JWT with legacy secret".
+// (Otherwise the gateway returns 401 before this code runs; auth is still enforced via getUser() + admin check below.)
+// Deno (Supabase Edge) resolves npm: — use the same line in the Dashboard editor.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders: Record<string, string> = {
