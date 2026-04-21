@@ -1,8 +1,3 @@
-/**
- * Small, timezone-safe date helpers. Every helper tolerates null/undefined/
- * invalid inputs so the UI never renders "Invalid Date" or crashes a list.
- */
-
 const safeDate = (input: string | number | Date | null | undefined): Date | null => {
   if (input === null || input === undefined || input === '') return null;
   const d = input instanceof Date ? input : new Date(input);

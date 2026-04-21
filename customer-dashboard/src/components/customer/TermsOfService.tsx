@@ -1,10 +1,6 @@
 import { Link } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 
-/**
- * Template terms of service — have it reviewed by qualified counsel for your jurisdiction
- * and your actual business rules before relying on it.
- */
 export default function TermsOfService() {
   return (
     <div

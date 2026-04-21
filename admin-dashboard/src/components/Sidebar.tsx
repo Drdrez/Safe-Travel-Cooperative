@@ -173,10 +173,6 @@ export function Sidebar({
     }
     setIsSaving(true);
 
-    // Verify the current password by re-authenticating. If it's wrong,
-    // signInWithPassword will return an error and we abort before the
-    // update. This prevents a hijacked session from silently rotating
-    // credentials.
     const { error: verifyErr } = await supabase.auth.signInWithPassword({
       email: currentUser.email,
       password: passForm.old,

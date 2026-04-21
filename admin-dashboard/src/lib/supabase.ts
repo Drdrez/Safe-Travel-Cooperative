@@ -4,7 +4,6 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  // Surface a clear, actionable error in dev rather than failing silently at runtime.
   console.error(
     '[supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. ' +
       'Create a .env file in admin-dashboard/ with these values, then restart `npm run dev`.'
@@ -21,10 +20,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 type CreateStaffResponse = { id: string; error?: string };
 
-/**
- * POSTs to an Edge Function and parses JSON so `{ error: "..." }` from the function
- * is shown. `supabase.functions.invoke` often surfaces only "Edge Function returned a non-2xx status code".
- */
 export async function invokeEdgeFunction<T = CreateStaffResponse>(
   functionName: string,
   body: unknown,
@@ -33,7 +28,6 @@ export async function invokeEdgeFunction<T = CreateStaffResponse>(
     return { data: null, error: 'Missing Supabase URL or anon key.' };
   }
 
-  // Edge Functions with verify_jwt validate the access token at the gateway. Stale tokens → 401 before our code runs.
   await supabase.auth.refreshSession();
   const { data: sess, error: sessErr } = await supabase.auth.getSession();
   const token = sess.session?.access_token;

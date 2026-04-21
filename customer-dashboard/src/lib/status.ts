@@ -1,8 +1,3 @@
-/**
- * Canonical status vocabularies shared across the app.
- * Keep these in sync with the admin-dashboard copy and the SQL constraints.
- */
-
 export const RESERVATION_STATUSES = [
   'Pending',
   'Confirmed',

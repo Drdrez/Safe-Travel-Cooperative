@@ -18,11 +18,6 @@ export type ReceiptInput = {
   referenceId?: string | null;
 };
 
-/**
- * Customer-facing Official Receipt PDF for a paid rental billing.
- * Matches the admin-side receipt layout so both parties have an identical
- * document.
- */
 export function generateReceiptPdf(input: ReceiptInput) {
   const doc = new jsPDF({ unit: 'pt', format: 'letter' });
   const pageWidth = doc.internal.pageSize.getWidth();

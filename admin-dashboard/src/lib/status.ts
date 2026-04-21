@@ -1,8 +1,3 @@
-/**
- * Canonical status vocabularies shared across the app.
- * Keep these in sync with the customer-dashboard copy and the SQL constraints.
- */
-
 export const RESERVATION_STATUSES = [
   'Pending',
   'Confirmed',
@@ -37,7 +32,6 @@ export const VEHICLE_STATUSES = [
 
 export type VehicleStatus = (typeof VEHICLE_STATUSES)[number];
 
-/** Map a status to a sonner/toast/badge variant in a typo-safe way. */
 export const badgeForReservation = (s: string | null | undefined): string => {
   switch (s) {
     case 'Pending':

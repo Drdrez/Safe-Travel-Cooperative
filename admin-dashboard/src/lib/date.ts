@@ -1,9 +1,3 @@
-/**
- * Small, timezone-safe date helpers. These format dates in the local timezone
- * by default, but every helper tolerates null/undefined/invalid inputs so the
- * UI never renders "Invalid Date" or crashes a list page.
- */
-
 const safeDate = (input: string | number | Date | null | undefined): Date | null => {
   if (input === null || input === undefined || input === '') return null;
   const d = input instanceof Date ? input : new Date(input);
@@ -35,7 +29,6 @@ export const formatDateTime = (
   });
 };
 
-/** Return local ISO day bucket, e.g. '2026-04-18' (stable across timezones on the client). */
 export const localDayKey = (input: string | number | Date | null | undefined): string => {
   const d = safeDate(input);
   if (!d) return '';
@@ -45,7 +38,6 @@ export const localDayKey = (input: string | number | Date | null | undefined): s
   return `${y}-${m}-${day}`;
 };
 
-/** Check whether two date inputs fall on the same local calendar day. */
 export const isSameLocalDay = (
   a: string | number | Date | null | undefined,
   b: string | number | Date | null | undefined
@@ -55,7 +47,6 @@ export const isSameLocalDay = (
   return !!k1 && k1 === k2;
 };
 
-/** Difference in days between two dates (end - start), rounded down. */
 export const daysBetween = (
   start: string | number | Date | null | undefined,
   end: string | number | Date | null | undefined

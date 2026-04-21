@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
-// Fix Leaflet icon issue
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
@@ -16,7 +15,6 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Custom Vehicle Icon
 const vehicleIcon = L.divIcon({
   className: 'custom-div-icon',
   html: `
@@ -29,7 +27,6 @@ const vehicleIcon = L.divIcon({
   iconAnchor: [0, 0]
 });
 
-// Custom Destination Icon
 const destinationIcon = L.divIcon({
     className: 'custom-destination-icon',
     html: `
@@ -56,12 +53,9 @@ export default function TrackingPage() {
       }
     };
   }, []);
-  
-  // Coords for simulation [lat, lng]
   const pickup: [number, number] = [14.6560, 121.0437];
   const destination: [number, number] = [14.5083, 121.0194];
 
-  // Mock tracking context
   const trackingData = {
     reservationId: 'RES-XJ928',
     vehicleNumber: 'PH-ST 1092',

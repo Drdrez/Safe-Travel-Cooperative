@@ -30,7 +30,6 @@ type FleetVehicle = {
   model: string;
   plate_number: string;
   capacity: number | null;
-  /** Matches `vehicles.daily_rate_cents` from admin / DB */
   daily_rate_cents: number | null;
   image_url?: string | null;
   status?: string | null;
@@ -42,7 +41,7 @@ type SampleVehicle = {
   category: 'Sedan' | 'SUV' | 'Van' | 'Shuttle';
   capacity: number;
   dailyRatePHP: number;
-  tint: string; // gradient accent
+  tint: string;
   icon: typeof Car;
 };
 
@@ -98,7 +97,6 @@ const STEPS = [
   },
 ];
 
-// Vehicle categories offered by the cooperative, displayed facing forward in the hero.
 const VEHICLE_TYPES = [
   { icon: CarFront, label: 'Sedan', sub: 'Up to 4 seats' },
   { icon: Car, label: 'SUV', sub: 'Up to 7 seats' },
@@ -147,7 +145,6 @@ export default function Landing() {
           trips: tripCount || 0,
         });
       } catch {
-        // Landing should still render even if Supabase is unreachable.
       } finally {
         setLoadingFleet(false);
       }
@@ -178,7 +175,6 @@ export default function Landing() {
           </span>
         </div>
       )}
-      {/* ========== NAV (hidden on small screens — hero has primary CTAs) ========== */}
       <header
         className="landing-site-header"
         style={{
@@ -233,7 +229,6 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* ========== HERO ========== */}
       <section
         className="landing-hero"
         style={{
@@ -242,7 +237,6 @@ export default function Landing() {
           overflow: 'hidden',
           color: 'white',
           backgroundImage:
-            // Darken layer + highway-at-dusk photo from Unsplash (free to use).
             'linear-gradient(180deg, rgba(15,23,42,0.72) 0%, rgba(15,23,42,0.55) 45%, rgba(15,23,42,0.85) 100%), url("https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=2000&q=80")',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -340,7 +334,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ========== FEATURES ========== */}
       <section id="why" style={{ padding: '80px 24px', background: '#fff' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <SectionHeader
@@ -399,7 +392,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ========== VEHICLES CAROUSEL ========== */}
       <section id="vehicles" style={{ padding: '80px 0', background: 'var(--slate-50)', overflow: 'hidden' }}>
         <div style={{ padding: '0 24px' }}>
           <SectionHeader
@@ -437,7 +429,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ========== HOW IT WORKS ========== */}
       <section id="how" style={{ padding: '80px 24px', background: '#fff' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <SectionHeader
@@ -491,7 +482,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ========== MEMBERSHIP CTA ========== */}
       <section
         id="membership"
         style={{
@@ -582,7 +572,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ========== FINAL CTA ========== */}
       <section style={{ padding: '72px 24px', background: '#fff' }}>
         <div
           style={{
@@ -620,7 +609,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ========== FOOTER ========== */}
       <footer
         style={{
           padding: '48px 24px 32px',
@@ -721,7 +709,6 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* Tiny responsive helpers scoped to the landing page */}
       <style>{`
         .landing-page a:hover { color: var(--brand-gold-dark); }
         .landing-page footer a:hover { color: var(--brand-gold); }
@@ -778,8 +765,6 @@ export default function Landing() {
     </div>
   );
 }
-
-/* -------------------- helpers -------------------- */
 
 function Stat({
   label,
@@ -857,12 +842,10 @@ type MarqueeCard = {
   tint: string;
   icon: typeof Car;
   imageUrl?: string | null;
-  /** Vehicle status for badge (from DB); sample rows use "Available". */
   statusBadge?: string;
 };
 
 function VehicleMarquee({ realVehicles }: { realVehicles: FleetVehicle[] }) {
-  // Prefer real vehicles from the DB; fall back to stylised placeholders.
   const source: MarqueeCard[] =
     realVehicles.length > 0
       ? realVehicles.map((v) => ({
@@ -887,7 +870,6 @@ function VehicleMarquee({ realVehicles }: { realVehicles: FleetVehicle[] }) {
           statusBadge: 'Available',
         }));
 
-  // Duplicate the list so the marquee loops seamlessly.
   const loop = [...source, ...source];
 
   return (
@@ -898,7 +880,6 @@ function VehicleMarquee({ realVehicles }: { realVehicles: FleetVehicle[] }) {
         ))}
       </div>
 
-      {/* Animation + hover-to-pause + fade edges */}
       <style>{`
         .vehicle-marquee {
           position: relative;

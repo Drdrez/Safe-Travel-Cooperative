@@ -23,17 +23,12 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString();
 }
 
-// Admin uses screen-ID navigation (not URLs), so we translate a notification
-// into the target screen. We prefer routing by `kind` because it's stable and
-// authoritative; the link string is used only as a fallback for older rows.
 const KIND_SCREEN: Record<string, string> = {
-  // admin fan-out events
   'admin.reservation.new':     'reservations',
   'admin.billing.submitted':   'billing',
   'admin.billing.refund':      'billing',
   'admin.ticket.new':          'support',
   'admin.loan.new':            'loans',
-  // customer events (still sensible landing spots if an admin ever sees them)
   'reservation.confirmed':     'reservations',
   'reservation.in_progress':   'tracking',
   'reservation.completed':     'reservations',
@@ -41,7 +36,6 @@ const KIND_SCREEN: Record<string, string> = {
   'billing.paid':              'billing',
   'billing.submitted':         'billing',
   'billing.overdue':           'billing',
-  // cooperative / payroll
   'loan.approved':             'loans',
   'loan.rejected':             'loans',
   'loan.disbursed':            'loans',

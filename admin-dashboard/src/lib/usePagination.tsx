@@ -6,8 +6,8 @@ export type Pagination<T> = {
   pageSize: number;
   totalPages: number;
   total: number;
-  firstIndex: number;  // 1-based index of first visible row, or 0 if empty
-  lastIndex: number;   // 1-based index of last visible row, or 0 if empty
+  firstIndex: number;
+  lastIndex: number;
   items: T[];
   setPage: (p: number) => void;
   setPageSize: (n: number) => void;
@@ -15,12 +15,6 @@ export type Pagination<T> = {
   prev: () => void;
 };
 
-/**
- * Client-side pagination for in-memory arrays. Good for tables that already
- * fetch everything into memory (the existing admin tables all do this).
- * When a record is added/removed the hook clamps the current page so you never
- * end up stranded on an empty page.
- */
 export function usePagination<T>(items: T[], defaultPageSize = 10): Pagination<T> {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(defaultPageSize);
@@ -28,7 +22,6 @@ export function usePagination<T>(items: T[], defaultPageSize = 10): Pagination<T
   const total = items.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  // Clamp page whenever the dataset shrinks (realtime deletes, filters, etc.)
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
     if (page < 1) setPage(1);
@@ -62,16 +55,12 @@ export function usePagination<T>(items: T[], defaultPageSize = 10): Pagination<T
 
 type TablePaginationProps = {
   pagination: Pagination<unknown>;
-  label?: string; // e.g. "reservations", "bills"
+  label?: string;
   pageSizes?: number[];
   className?: string;
   style?: React.CSSProperties;
 };
 
-/**
- * Renders a compact pagination bar. Designed to sit at the bottom of the
- * existing `.data-card` block so it blends in with the table.
- */
 export function TablePagination({
   pagination,
   label = 'records',
@@ -192,7 +181,6 @@ function PgBtn({
   );
 }
 
-// Generates a compact page window like [1, 2, 3, 4, 5] or [1, '…', 6, 7, 8, '…', 42].
 function getPageWindow(current: number, total: number): (number | '…')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
 

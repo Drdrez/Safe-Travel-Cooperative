@@ -61,7 +61,6 @@ export function AuditTimeline({ reservationId }: Props) {
       if (error || !data) { setLoading(false); return; }
       setEntries(data as AuditEntry[]);
 
-      // Batch-fetch actor profiles (admins who performed the action).
       const actorIds = Array.from(new Set(
         (data as AuditEntry[]).map(e => e.actor_id).filter((x): x is string => !!x)
       ));

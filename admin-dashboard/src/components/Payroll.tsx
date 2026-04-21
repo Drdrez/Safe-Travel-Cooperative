@@ -101,8 +101,6 @@ export function Payroll() {
     setSelectedPeriod(data as Period);
   };
 
-  // Create a draft item for every active employee who doesn't already have one
-  // in this period, seeded from their base_rate.
   const autoGenerateItems = async (period: Period) => {
     const existingIds = new Set(items.filter(i => i.period_id === period.id).map(i => i.employee_id));
     const toInsert = employees

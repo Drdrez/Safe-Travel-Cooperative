@@ -29,11 +29,6 @@ export const DEFAULT_OP_PREFS: OpPrefs = {
   maintenance_mode: false,
 };
 
-/**
- * Reads app_settings.op_prefs once on mount and re-reads when the row changes
- * via Supabase Realtime. Falls back to DEFAULT_OP_PREFS if the row is missing
- * or the service cannot be reached (e.g. on the public landing page).
- */
 export function useOpPrefs(): { prefs: OpPrefs; loading: boolean } {
   const [prefs, setPrefs] = useState<OpPrefs>(DEFAULT_OP_PREFS);
   const [loading, setLoading] = useState(true);
@@ -55,8 +50,6 @@ export function useOpPrefs(): { prefs: OpPrefs; loading: boolean } {
 
     load();
 
-    // Unique channel name per mount so multiple hook instances on the same page
-    // (e.g. CustomerLayout + Membership) don't collide on one named channel.
     const channel = supabase
       .channel(`op_prefs_changes_${Math.random().toString(36).slice(2, 10)}`)
       .on(

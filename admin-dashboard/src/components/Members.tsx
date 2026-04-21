@@ -147,7 +147,6 @@ export function Members() {
       recorded_by: authData.user?.id || null,
     }]);
 
-    // If it's share capital, also roll it into the member's share_capital_cents.
     if (!error && contribForm.kind === 'Share Capital') {
       const next = detailMember.share_capital_cents + toCents(Number(contribForm.amount_php));
       await supabase.from('cooperative_members').update({ share_capital_cents: next }).eq('id', detailMember.id);

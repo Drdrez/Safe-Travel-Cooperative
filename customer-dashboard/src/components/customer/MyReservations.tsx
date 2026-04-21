@@ -22,7 +22,6 @@ interface Reservation {
   vehicles?: { vehicle_type: string; model?: string; plate_number?: string } | null;
 }
 
-// Defaults used only if app_settings is unreachable.
 const DEFAULT_CANCEL_WINDOW_HOURS = 2;
 const DEFAULT_CANCEL_FEE_PCT = 10;
 
@@ -48,7 +47,6 @@ export default function MyReservations() {
     fetchCancellationPolicy();
   }, []);
 
-  // Stay in sync with admin-side status flips and trigger-driven changes.
   useRealtimeRefresh(
     'reservations',
     () => fetchReservations(true),
@@ -96,8 +94,6 @@ export default function MyReservations() {
     setIsRefreshing(false);
   };
 
-  // Fee owed if customer cancels within the policy window. Returns 0 outside the window
-  // or when the admin has disabled cancellation-fee enforcement in Operational Preferences.
   const computeCancellationFeeCents = (res: Reservation): number => {
     if (!enforceCancellationFee) return 0;
     const hrs = hoursUntil(res.start_date);
@@ -124,11 +120,6 @@ export default function MyReservations() {
       return;
     }
 
-    // Billing sync:
-    //   No fee       → cancel the outstanding invoice.
-    //   Fee applies  → convert the invoice to a cancellation fee (still Pending).
-    //                  We don't touch invoices that are already Paid — those
-    //                  require a refund flow handled by an admin.
     if (feeCents > 0) {
       const { error: billingErr } = await supabase
         .from('billings')

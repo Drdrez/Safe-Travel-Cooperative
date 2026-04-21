@@ -1,10 +1,6 @@
 import { Link } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 
-/**
- * Template privacy notice — have it reviewed by qualified counsel for your jurisdiction
- * (e.g. Philippines DPA 2012) and your actual data practices before relying on it.
- */
 export default function PrivacyPolicy() {
   return (
     <div

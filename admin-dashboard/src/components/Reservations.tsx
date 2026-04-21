@@ -48,7 +48,6 @@ export function Reservations() {
     endIso: string,
     excludeReservationId?: string
   ): Promise<boolean> => {
-    // Find any non-cancelled reservation that OVERLAPS [start, end] for this vehicle.
     let query = supabase
       .from('reservations')
       .select('id')
@@ -94,7 +93,6 @@ export function Reservations() {
         return;
       }
 
-      // Reject maintenance/retired vehicles at write time.
       const { data: veh } = await supabase
         .from('vehicles').select('status').eq('id', newRes.vehicle_id).single();
       if (veh && ['Maintenance', 'Retired'].includes(veh.status)) {
@@ -122,7 +120,6 @@ export function Reservations() {
   const updateStatus = async (id: string, newStatus: ReservationStatus) => {
     const res = reservationList.find(r => r.id === id);
 
-    // When confirming a reservation, re-check vehicle availability.
     if (newStatus === 'Confirmed' && res?.vehicle_id) {
       const available = await checkVehicleAvailability(
         res.vehicle_id,
@@ -136,7 +133,6 @@ export function Reservations() {
       }
     }
 
-    // Destructive transitions get an extra confirmation.
     if (newStatus === 'Cancelled' && !confirm(`Cancel reservation ${res?.reservation_id_str}? This cannot be undone.`)) {
       return;
     }
@@ -144,7 +140,6 @@ export function Reservations() {
     const { error } = await supabase.from('reservations').update({ status: newStatus }).eq('id', id);
     if (error) { toast.error(`Update failed: ${error.message}`); return; }
 
-    // Keep the linked billing in sync on cancel.
     if (newStatus === 'Cancelled') {
       await supabase
         .from('billings')

@@ -15,9 +15,6 @@ type Notification = {
 
 const MAX_DISPLAY = 15;
 
-// Legacy rows may still carry a broken link (e.g. '/customer/my-reservations').
-// Always resolve to a known customer route based on the notification kind so
-// clicks are guaranteed to navigate somewhere sensible.
 const KIND_ROUTE: Record<string, string> = {
   'reservation.confirmed':   '/customer/reservations',
   'reservation.in_progress': '/customer/reservations',
@@ -78,7 +75,6 @@ export function NotificationBell() {
       await refresh(uid);
     })();
 
-    // Close on outside click.
     const onDocClick = (e: MouseEvent) => {
       if (!panelRef.current || !btnRef.current) return;
       const t = e.target as Node;
@@ -89,7 +85,6 @@ export function NotificationBell() {
     return () => { active = false; document.removeEventListener('mousedown', onDocClick); };
   }, []);
 
-  // Realtime subscription bound to the current user.
   useEffect(() => {
     if (!userId) return;
     const channel = supabase

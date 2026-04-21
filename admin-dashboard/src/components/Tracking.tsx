@@ -42,8 +42,6 @@ type ActiveTrip = {
   moving: boolean;
 };
 
-// Hash any string into a stable 0..1 number. Used to pseudo-distribute markers
-// on the map when GPS fixes aren't available yet.
 function hash01(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
@@ -83,7 +81,6 @@ export function Tracking() {
   }, []);
   useRealtimeRefresh('reservations', () => fetchData());
 
-  // Nudge marker positions a bit each tick so the map feels "live"
   useEffect(() => {
     if (!trips.length) return;
     setTrips(prev => prev.map(t => ({

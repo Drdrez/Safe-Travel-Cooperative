@@ -108,10 +108,8 @@ export default function PaymentsBilling() {
   const processPayment = () => {
     if (!selectedBill) return;
 
-    // Remove from outstanding bills
     setBillingList(prev => prev.filter(b => b.id !== selectedBill.id));
 
-    // Add to payment history
     const newId = `PAY-00${paymentList.length + 1}`;
     setPaymentList([
       {

@@ -17,8 +17,8 @@ export default function MakeReservation() {
     destination: '',
     startDate: '',
     endDate: '',
-    vehicleType: '', // This will store the vehicle ID
-    serviceType: 'withDriver', // 'withDriver' or 'selfDrive'
+    vehicleType: '',
+    serviceType: 'withDriver',
   });
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [orderSummary, setOrderSummary] = useState({ id: '', cost: 0 });
@@ -32,7 +32,6 @@ export default function MakeReservation() {
     fetchVehicles();
   }, []);
 
-  // Reflect admin-side availability / maintenance changes in near real time.
   useRealtimeRefresh('vehicles', () => fetchVehicles());
 
   const fetchVehicles = async () => {
@@ -43,8 +42,6 @@ export default function MakeReservation() {
     setIsFetchingVehicles(false);
   };
 
-  // Returns the DB price as a PHP amount; never silently substitutes a fake
-  // price, because that made the Trip Summary lie when a vehicle had no rate.
   const getPrice = (v: any): number => fromCents(v?.daily_rate_cents);
 
   const days = (() => {
@@ -121,8 +118,6 @@ export default function MakeReservation() {
 
     const estimatedCostCents = Math.round(cost * 100);
 
-    // Last-mile: make sure the vehicle wasn't grabbed by another customer
-    // between the time they picked it and the time they submitted.
     const { data: overlap, error: overlapErr } = await supabase
       .from('reservations')
       .select('id')
@@ -142,7 +137,6 @@ export default function MakeReservation() {
       return;
     }
 
-    // Insert reservation
     const { data: resData, error: resError } = await supabase.from('reservations').insert([{
       reservation_id_str: idStr,
       customer_id: userId,

@@ -25,7 +25,6 @@ export default function CustomerDashboard() {
     fetchCustomerData();
   }, []);
 
-  // Keep the overview card, metrics, and recent trip card fresh without a refresh.
   useRealtimeRefresh(
     ['reservations', 'billings'],
     () => fetchCustomerData(),
@@ -44,7 +43,6 @@ export default function CustomerDashboard() {
 
     const { data: profile, error: pErr } = await supabase.from('profiles').select('*').eq('id', user.id).single();
     if (pErr && pErr.code !== 'PGRST116') {
-      // PGRST116 = no rows; harmless for brand-new signups
       toast.error(`Couldn't load profile: ${pErr.message}`);
     }
 

@@ -15,11 +15,6 @@ export type Pagination<T> = {
   prev: () => void;
 };
 
-/**
- * Client-side pagination for in-memory arrays. Good for tables that already
- * fetch everything into memory. Clamps the current page when the dataset
- * shrinks so the user never lands on an empty page.
- */
 export function usePagination<T>(items: T[], defaultPageSize = 10): Pagination<T> {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(defaultPageSize);

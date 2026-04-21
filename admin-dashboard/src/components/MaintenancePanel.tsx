@@ -50,12 +50,6 @@ const COMMON_SERVICES = [
   'Other',
 ];
 
-/**
- * Inline maintenance panel used inside the Vehicle detail modal.
- * Admin can add, edit, or close maintenance records. While a record is
- * open (Scheduled / In Progress) the DB trigger keeps the vehicle in
- * status = 'Maintenance' automatically.
- */
 export function MaintenancePanel({ vehicleId, vehicleLabel }: { vehicleId: string; vehicleLabel?: string }) {
   const [records, setRecords] = useState<Record_[]>([]);
   const [loading, setLoading] = useState(true);

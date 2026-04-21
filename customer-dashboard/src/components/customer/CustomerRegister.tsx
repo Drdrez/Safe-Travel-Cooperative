@@ -56,7 +56,6 @@ export default function CustomerRegister() {
       return;
     }
 
-    // Rough Philippine contact-number sanity check: must contain 10+ digits.
     const digits = formData.contactNumber.replace(/\D+/g, '');
     if (digits.length < 10) {
       toast.error('Please enter a valid contact number (at least 10 digits)');
@@ -67,11 +66,6 @@ export default function CustomerRegister() {
     const toastId = toast.loading('Creating your account...');
 
     try {
-      // signUp will trigger the `handle_new_user` DB trigger (see
-      // supabase/migrations/001_production_schema.sql) which creates the
-      // profile with role='customer' server-side. We do NOT upsert the
-      // profile client-side — that path would let a hostile client elevate
-      // their own role in absence of RLS.
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -92,8 +86,6 @@ export default function CustomerRegister() {
       }
 
       if (data.user) {
-        // If the DB trigger isn't yet installed (e.g. in a fresh project),
-        // fall back to a best-effort insert so signup still works.
         await supabase.from('profiles').upsert(
           [{
             id: data.user.id,

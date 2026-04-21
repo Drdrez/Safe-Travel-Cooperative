@@ -36,8 +36,6 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period]);
 
-  // Keep the Attention Inbox, KPIs, and charts live as data changes anywhere
-  // in the system (customer app, DB triggers, other admin tabs).
   useRealtimeRefresh(
     ['reservations', 'billings', 'support_tickets', 'profiles', 'vehicles'],
     () => fetchDashboardData(),
@@ -47,10 +45,6 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Period window used for bucketing.
-      //   Weekly  = last 7 days, one bucket per day
-      //   Monthly = last 12 months, one bucket per month
-      //   Yearly  = last 5 years, one bucket per year
       const YEARS_BACK = 5;
       const now = new Date();
       let windowStart: Date;
@@ -65,18 +59,12 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
       }
       const windowIso = windowStart.toISOString();
 
-      // Revenue now reads from `billings` where status='Paid'. This is the
-      // only source of truth for money we've actually collected — a trip
-      // being "Completed" doesn't guarantee payment was received. We
-      // attribute revenue by paid_at, falling back to confirmed_at and
-      // finally created_at if older rows don't have those timestamps.
       const [
         { data: paidBillings, error: incomeErr },
         { count: unitsCount },
         { count: usersCount },
         { count: requestsCount },
         { data: volData, error: volErr },
-        // Attention-inbox counters run in parallel to keep the dashboard snappy.
         { count: pendingReservationsCount },
         { count: pendingConfirmationCount },
         { count: refundPendingCount },
@@ -94,7 +82,6 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
           .select('status, start_date, created_at')
           .gte('created_at', windowIso),
 
-        // Inbox queries
         supabase.from('reservations')
           .select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
         supabase.from('billings')
@@ -110,7 +97,6 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
       if (incomeErr) toast.error(`Revenue load failed: ${incomeErr.message}`);
       if (volErr) toast.error(`Booking-volume load failed: ${volErr.message}`);
 
-      // Keep only Paid rows for attribution.
       const paidRows = (paidBillings || []).filter(b => b.status === 'Paid');
 
       const buckets: Array<{ name: string; income: number }> = [];
@@ -143,7 +129,6 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
         }
       }
 
-      // Attribution priority: paid_at -> confirmed_at -> created_at.
       const attributionDate = (b: { paid_at?: string | null; confirmed_at?: string | null; created_at: string }) => {
         const pick = (v?: string | null) => {
           if (!v) return null;
@@ -189,7 +174,6 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
         requests: requestsCount || 0,
       });
 
-      // Booking status pipeline for the selected window.
       const statusRows: Array<{ name: string; match: (s: string) => boolean; color: string }> = [
         { name: 'Pending',     match: s => s === 'pending',     color: 'var(--brand-gold)' },
         { name: 'Confirmed',   match: s => s === 'confirmed',   color: 'var(--emerald-500)' },
@@ -204,7 +188,6 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
       }));
       setStatusBreakdown(breakdown);
 
-      // Attention inbox — only non-zero rows are surfaced.
       const inboxRaw: InboxItem[] = [
         { id: 'pending-res',  label: 'Bookings awaiting approval',      count: pendingReservationsCount || 0, icon: Calendar,       tone: 'gold',    navTo: 'reservations',  cta: 'Review' },
         { id: 'pending-pay',  label: 'Payments awaiting confirmation',  count: pendingConfirmationCount || 0, icon: Wallet,         tone: 'sky',     navTo: 'billing',       cta: 'Verify' },

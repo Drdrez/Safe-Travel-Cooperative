@@ -52,7 +52,6 @@ type Ticket = {
   reservations?: { reservation_id_str: string | null } | null;
 };
 
-/** Supabase may return an embedded FK as one object or a one-element array. */
 function normalizeEmbeddedReservation(
   r:
     | { reservation_id_str: string | null }
@@ -90,14 +89,12 @@ export default function Support() {
     fetchReservations();
   }, []);
 
-  // Show new admin replies / status changes without the customer needing to refresh.
   useRealtimeRefresh(
     'support_tickets',
     () => fetchTickets(),
     { filter: userId ? `customer_id=eq.${userId}` : undefined, enabled: !!userId },
   );
 
-  // Deep-link from "Report a problem" button: pre-select reservation + subject.
   useEffect(() => {
     const state = (location.state || {}) as { reservationId?: string; subject?: string; message?: string };
     if (state.reservationId) setReservationId(state.reservationId);
@@ -116,7 +113,6 @@ export default function Support() {
       .order('created_at', { ascending: false })
       .limit(20);
     if (error) {
-      // Table may not exist if migration wasn't run yet — don't be noisy.
       console.warn('[support] could not load tickets:', error.message);
     }
     if (data) {

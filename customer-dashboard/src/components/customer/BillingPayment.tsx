@@ -67,7 +67,6 @@ export default function BillingPayment() {
     fetchBills();
   }, []);
 
-  // Listen for admin-side payment confirmations, trigger-driven inserts, etc.
   useRealtimeRefresh(
     'billings',
     () => fetchBills(),
@@ -122,9 +121,6 @@ export default function BillingPayment() {
 
     setIsProcessing(true);
 
-    // Customers submit a payment claim (status = 'Pending Confirmation').
-    // An admin must verify the reference in the Finance page before the bill
-    // is marked 'Paid'. This prevents clients from self-crediting invoices.
     const { error } = await supabase
       .from('billings')
       .update({

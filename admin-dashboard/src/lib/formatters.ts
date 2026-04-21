@@ -25,16 +25,11 @@ export const fromCents = (cents: number | null | undefined) => {
   return cents / 100;
 };
 
-/**
- * Peso string safe for jsPDF built-in fonts (Helvetica). `formatPHP` uses ₱ from Intl;
- * that glyph is missing in standard PDF fonts and often renders as "±".
- */
 export function formatPHPForPdf(amount: number | null | undefined): string {
   const n = typeof amount === 'number' && Number.isFinite(amount) ? amount : 0;
   return `PHP ${n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-/** One line for receipts when only model or plate is present. */
 export function formatVehicleLine(v: { model?: string | null; plate_number?: string | null } | null | undefined): string | null {
   if (!v) return null;
   const m = v.model?.trim();

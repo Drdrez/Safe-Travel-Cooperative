@@ -61,12 +61,9 @@ const STATUS_TONES: Record<string, string> = {
 
 const STATUSES = ['all', 'Pending', 'Approved', 'Disbursed', 'Repaying', 'Closed', 'Rejected', 'Defaulted', 'Cancelled'] as const;
 
-// Straight-line amortization for quick preview. Real cooperatives often use
-// declining balance / add-on; keep this simple and labeled in the UI.
 function buildSchedule(principalCents: number, annualPct: number, months: number, start = new Date()) {
   if (!months || months <= 0 || !principalCents) return [];
   const monthlyRate = annualPct / 100 / 12;
-  // Simple flat interest over the term.
   const totalInterest = Math.round(principalCents * monthlyRate * months);
   const total = principalCents + totalInterest;
   const per = Math.round(total / months);
@@ -214,7 +211,6 @@ export function Loans() {
     toast.success('Payment recorded');
     setPayForm({ paid_on: new Date().toISOString().slice(0, 10), amount_php: '', method: 'Cash', reference: '' });
     fetchAll();
-    // Re-fetch the detail loan to reflect the new balance
     const { data } = await supabase.from('loan_requests').select('*, cooperative_members:member_id(member_number, profile_id, profiles:profile_id(full_name, email))').eq('id', detailLoan.id).single();
     if (data) setDetailLoan(data as any);
   };
