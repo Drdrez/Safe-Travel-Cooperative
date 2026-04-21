@@ -1,0 +1,2 @@
+[functions.create-staff]
+verify_jwt = false
