@@ -24,11 +24,11 @@ const FAQS = [
   },
   {
     question: "What payment methods are accepted?",
-    answer: "We accept all major credit cards, digital wallets (GCash, Maya), and bank transfers. For long-term cooperative members, we also offer 'Post-Paid' billing options."
+    answer: "We accept all major credit cards, digital wallets (GCash, Maya), and bank transfers."
   },
   {
-    question: "How do I become a cooperative member?",
-    answer: "Simply register for an account and apply for membership. Once approved by our administrative board, you will gain access to member-exclusive rates and premium fleet options."
+    question: "How do I get the best rates?",
+    answer: "Create an account and book early when you can. Promotional rates and fleet options appear in the booking flow as they become available."
   }
 ];
 

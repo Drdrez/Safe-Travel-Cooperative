@@ -9,10 +9,10 @@ import {
   MapPin,
   Zap,
   Loader2,
-  Wallet,
   AlertTriangle,
   Menu,
   X,
+  ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
@@ -172,7 +172,7 @@ export default function CustomerLayout() {
     { path: '/customer/reservations', label: 'My Trips', icon: MapPin },
     { path: '/customer/billing', label: 'Payments', icon: CreditCard },
     { path: '/customer/tracking', label: 'Track Trip', icon: Zap },
-    { path: '/customer/membership', label: 'Membership', icon: Wallet },
+    { path: '/customer/incidents', label: 'Incidents', icon: ShieldAlert },
     { path: '/customer/profile', label: 'Account', icon: User },
   ];
 

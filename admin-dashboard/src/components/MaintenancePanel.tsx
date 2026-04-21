@@ -17,6 +17,10 @@ type Record_ = {
   cost_cents: number;
   status: 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled' | string;
   notes: string | null;
+  issue_description?: string | null;
+  cost_responsibility?: string | null;
+  repaired_by?: string | null;
+  work_completed_summary?: string | null;
   created_at: string;
 };
 
@@ -28,6 +32,8 @@ const STATUS_TONES: Record<string, string> = {
   Cancelled: 'badge-default',
 };
 
+const COST_RESP = ['TBD', 'Cooperative', 'Customer', 'Insurance', 'Warranty', 'Split'] as const;
+
 const DEFAULT_FORM = {
   service_type: 'General Check-up',
   scheduled_for: '',
@@ -36,6 +42,10 @@ const DEFAULT_FORM = {
   cost_php: '',
   notes: '',
   status: 'Scheduled' as typeof STATUS_OPTIONS[number],
+  issue_description: '',
+  cost_responsibility: 'TBD' as (typeof COST_RESP)[number],
+  repaired_by: '',
+  work_completed_summary: '',
 };
 
 const COMMON_SERVICES = [
@@ -84,6 +94,10 @@ export function MaintenancePanel({ vehicleId, vehicleLabel }: { vehicleId: strin
       cost_php: r.cost_cents ? String(fromCents(r.cost_cents)) : '',
       notes: r.notes || '',
       status: (STATUS_OPTIONS.includes(r.status as any) ? r.status : 'Scheduled') as any,
+      issue_description: r.issue_description || '',
+      cost_responsibility: (COST_RESP.includes(r.cost_responsibility as any) ? r.cost_responsibility : 'TBD') as (typeof COST_RESP)[number],
+      repaired_by: r.repaired_by || '',
+      work_completed_summary: r.work_completed_summary || '',
     });
     setIsAdding(true);
   };
@@ -102,6 +116,10 @@ export function MaintenancePanel({ vehicleId, vehicleLabel }: { vehicleId: strin
       notes: form.notes || null,
       status: form.status,
       created_by: authData.user?.id || null,
+      issue_description: form.issue_description.trim() || null,
+      cost_responsibility: form.cost_responsibility,
+      repaired_by: form.repaired_by.trim() || null,
+      work_completed_summary: form.work_completed_summary.trim() || null,
     };
     const { error } = editing
       ? await supabase.from('maintenance_records').update(payload).eq('id', editing.id)
@@ -141,20 +159,30 @@ export function MaintenancePanel({ vehicleId, vehicleLabel }: { vehicleId: strin
 
       <div className="table-wrapper" style={{ maxHeight: 280, overflowY: 'auto' }}>
         <table className="data-table">
-          <thead><tr><th>Service</th><th>Scheduled</th><th>Completed</th><th>Cost</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Service / issue</th><th>Who pays</th><th>Scheduled</th><th>Done / who fixed</th><th>Cost</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 16, color: 'var(--slate-400)' }}>Loading…</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 16, color: 'var(--slate-400)' }}>Loading…</td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 16, color: 'var(--slate-400)' }}>No maintenance records yet.</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 16, color: 'var(--slate-400)' }}>No maintenance records yet.</td></tr>
             ) : records.map(r => (
               <tr key={r.id}>
                 <td>
                   <div style={{ fontWeight: 600, fontSize: 12 }}>{r.service_type}</div>
+                  {r.issue_description && (
+                    <div style={{ fontSize: 11, color: 'var(--slate-600)', marginTop: 4 }}>Issue: {r.issue_description}</div>
+                  )}
+                  {r.work_completed_summary && (
+                    <div style={{ fontSize: 11, color: 'var(--indigo-600)', marginTop: 2 }}>Done: {r.work_completed_summary}</div>
+                  )}
                   {r.notes && <div style={{ fontSize: 11, color: 'var(--slate-500)' }}>{r.notes}</div>}
                 </td>
+                <td style={{ fontSize: 11 }}>{r.cost_responsibility || '—'}</td>
                 <td style={{ fontSize: 12 }}>{r.scheduled_for ? formatDate(r.scheduled_for) : '—'}</td>
-                <td style={{ fontSize: 12 }}>{r.completed_on ? formatDate(r.completed_on) : '—'}</td>
+                <td style={{ fontSize: 11 }}>
+                  {r.completed_on ? <div>{formatDate(r.completed_on)}</div> : <span style={{ color: 'var(--slate-400)' }}>—</span>}
+                  {r.repaired_by && <div style={{ marginTop: 2 }}>by {r.repaired_by}</div>}
+                </td>
                 <td style={{ fontSize: 12, fontWeight: 600 }}>{r.cost_cents ? formatPHP(fromCents(r.cost_cents)) : '—'}</td>
                 <td><span className={cn('badge', STATUS_TONES[r.status] || 'badge-outline')}>{r.status}</span></td>
                 <td style={{ whiteSpace: 'nowrap' }}>
@@ -195,6 +223,28 @@ export function MaintenancePanel({ vehicleId, vehicleLabel }: { vehicleId: strin
             <div className="grid-2">
               <div className="form-group"><label className="form-label">Odometer (km)</label><input className="form-input" type="number" min="0" value={form.odometer_km} onChange={e => setForm({ ...form, odometer_km: e.target.value })} /></div>
               <div className="form-group"><label className="form-label">Cost (₱)</label><input className="form-input" type="number" min="0" step="0.01" value={form.cost_php} onChange={e => setForm({ ...form, cost_php: e.target.value })} /></div>
+            </div>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">Issue / damage</label>
+                <input className="form-input" value={form.issue_description} onChange={e => setForm({ ...form, issue_description: e.target.value })} placeholder="What is wrong?" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Who pays</label>
+                <select className="form-input" value={form.cost_responsibility} onChange={e => setForm({ ...form, cost_responsibility: e.target.value as (typeof COST_RESP)[number] })}>
+                  {COST_RESP.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid-2">
+              <div className="form-group">
+                <label className="form-label">Repaired by (when done)</label>
+                <input className="form-input" value={form.repaired_by} onChange={e => setForm({ ...form, repaired_by: e.target.value })} placeholder="Shop or mechanic name" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Work completed (summary)</label>
+                <input className="form-input" value={form.work_completed_summary} onChange={e => setForm({ ...form, work_completed_summary: e.target.value })} placeholder="What was fixed" />
+              </div>
             </div>
             <div className="form-group"><label className="form-label">Notes</label><input className="form-input" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Shop, parts replaced, follow-up…" /></div>
             <div className="flex-start gap-2">

@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, Car, UserCircle, Calendar, FileText,
   CreditCard, Navigation, MapPin, XCircle, Settings,
-  LogOut, X, KeyRound, ChevronDown, User, Loader2, MessageSquare,
-  Wallet, Wrench, HandCoins, BadgeDollarSign
+  LogOut, X, KeyRound, ChevronDown, User, Loader2, MessageSquare, ShieldAlert,
+  Wrench, BadgeDollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
@@ -30,13 +30,6 @@ const menuSections: { label: string; items: { id: string; label: string; icon: a
     ],
   },
   {
-    label: 'Cooperative',
-    items: [
-      { id: 'members', label: 'Members', icon: Wallet },
-      { id: 'loans', label: 'Loans', icon: HandCoins },
-    ],
-  },
-  {
     label: 'Fleet & People',
     items: [
       { id: 'vehicles', label: 'Units', icon: Car },
@@ -49,6 +42,7 @@ const menuSections: { label: string; items: { id: string; label: string; icon: a
   {
     label: 'System',
     items: [
+      { id: 'incidents', label: 'Incidents', icon: ShieldAlert },
       { id: 'support', label: 'Support', icon: MessageSquare },
       { id: 'settings', label: 'Settings', icon: Settings },
     ],

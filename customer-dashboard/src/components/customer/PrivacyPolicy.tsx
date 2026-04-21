@@ -65,7 +65,7 @@ export default function PrivacyPolicy() {
             <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>1. Who we are</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               <strong>Safe Travel Transport Cooperative</strong> (“we”, “us”) operates this website and
-              related services for booking, membership, billing, and support. For privacy questions,
+              related services for booking, billing, and support. For privacy questions,
               contact us at{' '}
               <a href="mailto:safetravels.transportcoop@gmail.com" style={{ color: 'var(--brand-gold-dark)', fontWeight: 600 }}>
                 safetravels.transportcoop@gmail.com

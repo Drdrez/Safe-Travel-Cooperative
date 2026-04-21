@@ -20,8 +20,8 @@ export default function ProfilePage() {
     city: 'San Francisco',
     state: 'CA',
     zipCode: '94102',
-    memberSince: '2023-06-15',
-    membershipType: 'Premium',
+    customerSince: '2023-06-15',
+    accountLabel: 'Customer',
   });
 
   const handleSave = () => {
@@ -56,10 +56,10 @@ export default function ProfilePage() {
               <p className="text-gray-600 mb-2">{profileData.email}</p>
               <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">
-                  {profileData.membershipType} Member
+                  {profileData.accountLabel}
                 </span>
                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full">
-                  Member since {new Date(profileData.memberSince).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  Customer since {new Date(profileData.customerSince).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </span>
               </div>
             </div>

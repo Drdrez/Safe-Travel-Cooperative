@@ -64,7 +64,7 @@ export default function TermsOfService() {
           <section style={{ marginBottom: 28 }}>
             <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>1. Agreement</h2>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
-              By accessing this website, creating an account, or using booking, membership, billing, or
+              By accessing this website, creating an account, or using booking, billing, or
               support services operated by <strong>Safe Travel Transport Cooperative</strong> (“we”,
               “us”), you agree to these Terms of Service and our{' '}
               <Link to="/privacy" style={{ color: 'var(--brand-gold-dark)', fontWeight: 600 }}>
@@ -122,7 +122,7 @@ export default function TermsOfService() {
             <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--slate-700)' }}>
               Prices shown before you confirm a booking are part of your agreement for that trip. Payment
               methods, taxes, and cooperative fees (if any) will be as stated at checkout or in your
-              membership terms. Late payments or chargebacks may result in suspension of service where
+              account terms. Late payments or chargebacks may result in suspension of service where
               permitted by law.
             </p>
           </section>

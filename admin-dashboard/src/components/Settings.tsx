@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Upload, Loader2, KeyRound, CreditCard, Ban, UserPlus, HandCoins, AlertTriangle } from 'lucide-react';
+import { Upload, Loader2, KeyRound, CreditCard, Ban, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -21,8 +21,6 @@ type OpPrefs = {
   cancellation_window_hours: number;
   online_payments_enabled: boolean;
   enforce_cancellation_fee: boolean;
-  accept_member_applications: boolean;
-  accept_loan_applications: boolean;
   maintenance_mode: boolean;
 };
 
@@ -43,8 +41,6 @@ const DEFAULT_OP_PREFS: OpPrefs = {
   cancellation_window_hours: 2,
   online_payments_enabled: true,
   enforce_cancellation_fee: true,
-  accept_member_applications: true,
-  accept_loan_applications: true,
   maintenance_mode: false,
 };
 
@@ -267,20 +263,6 @@ export function Settings() {
               desc="Apply the cancellation fee % above when customers cancel outside the free-cancel window."
               checked={prefs.enforce_cancellation_fee}
               onChange={(v) => setPrefs({ ...prefs, enforce_cancellation_fee: v })}
-            />
-            <Toggle
-              icon={UserPlus}
-              label="Accept new member applications"
-              desc="Show the 'become a member' flow on the customer portal."
-              checked={prefs.accept_member_applications}
-              onChange={(v) => setPrefs({ ...prefs, accept_member_applications: v })}
-            />
-            <Toggle
-              icon={HandCoins}
-              label="Accept loan applications"
-              desc="Let existing members apply for cooperative loans."
-              checked={prefs.accept_loan_applications}
-              onChange={(v) => setPrefs({ ...prefs, accept_loan_applications: v })}
             />
             <Toggle
               icon={AlertTriangle}

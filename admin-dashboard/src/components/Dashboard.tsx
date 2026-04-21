@@ -37,7 +37,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
   }, [period]);
 
   useRealtimeRefresh(
-    ['reservations', 'billings', 'support_tickets', 'profiles', 'vehicles'],
+    ['reservations', 'billings', 'support_tickets', 'incident_reports', 'profiles', 'vehicles'],
     () => fetchDashboardData(),
     { debounceMs: 400 },
   );
@@ -70,6 +70,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
         { count: refundPendingCount },
         { count: overdueCount },
         { count: openTicketCount },
+        { count: openIncidentCount },
       ] = await Promise.all([
         supabase
           .from('billings')
@@ -92,6 +93,8 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
           .select('*', { count: 'exact', head: true }).eq('status', 'Overdue'),
         supabase.from('support_tickets')
           .select('*', { count: 'exact', head: true }).in('status', ['Open', 'In Progress']),
+        supabase.from('incident_reports')
+          .select('*', { count: 'exact', head: true }).in('status', ['Submitted', 'Under Review', 'Escalated']),
       ]);
 
       if (incomeErr) toast.error(`Revenue load failed: ${incomeErr.message}`);
@@ -194,6 +197,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (id: string) => 
         { id: 'refunds',      label: 'Refund requests pending',         count: refundPendingCount || 0,       icon: RotateCcw,      tone: 'rose',    navTo: 'cancellations', cta: 'Process' },
         { id: 'overdue',      label: 'Overdue invoices',                count: overdueCount || 0,             icon: AlertTriangle,  tone: 'rose',    navTo: 'billing',       cta: 'Follow up' },
         { id: 'tickets',      label: 'Open support tickets',            count: openTicketCount || 0,          icon: MessageSquare,  tone: 'indigo',  navTo: 'support',       cta: 'Respond' },
+        { id: 'incidents',    label: 'Incident reports need attention', count: openIncidentCount || 0,       icon: AlertTriangle,  tone: 'rose',    navTo: 'incidents',     cta: 'Review' },
       ];
       setInbox(inboxRaw.filter(i => i.count > 0));
     } catch (err: any) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, X, Loader2, Clock, Trash2, ArrowRight, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Calendar, X, Loader2, Clock, Trash2, ArrowRight, RefreshCw, AlertTriangle, MessageSquare, Send, Gauge } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabase';
@@ -20,7 +20,25 @@ interface Reservation {
   created_at: string;
   estimated_cost_cents?: number | null;
   vehicles?: { vehicle_type: string; model?: string; plate_number?: string } | null;
+  customer_special_requests?: string | null;
+  dispatch_odometer_km?: number | null;
+  dispatch_fuel_level?: string | null;
+  dispatch_condition_notes?: string | null;
+  dispatch_recorded_at?: string | null;
+  return_odometer_km?: number | null;
+  return_fuel_level?: string | null;
+  return_condition_notes?: string | null;
+  return_recorded_at?: string | null;
+  km_driven?: number | null;
 }
+
+type ThreadMessage = {
+  id: string;
+  body: string;
+  is_staff: boolean;
+  created_at: string;
+  profiles?: { full_name: string | null } | null;
+};
 
 const DEFAULT_CANCEL_WINDOW_HOURS = 2;
 const DEFAULT_CANCEL_FEE_PCT = 10;
@@ -37,6 +55,9 @@ export default function MyReservations() {
   const [cancelFeePct, setCancelFeePct] = useState<number>(DEFAULT_CANCEL_FEE_PCT);
   const [enforceCancellationFee, setEnforceCancellationFee] = useState<boolean>(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [threadMessages, setThreadMessages] = useState<ThreadMessage[]>([]);
+  const [msgDraft, setMsgDraft] = useState('');
+  const [sendingMsg, setSendingMsg] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -52,6 +73,67 @@ export default function MyReservations() {
     () => fetchReservations(true),
     { filter: userId ? `customer_id=eq.${userId}` : undefined, enabled: !!userId },
   );
+
+  const selectedId = selectedReservation?.id;
+  const loadThread = async (rid: string) => {
+    const { data, error } = await supabase
+      .from('reservation_messages')
+      .select('id, body, is_staff, created_at, profiles!reservation_messages_author_id_fkey(full_name)')
+      .eq('reservation_id', rid)
+      .order('created_at', { ascending: true });
+    if (error) {
+      toast.error(error.message);
+      setThreadMessages([]);
+      return;
+    }
+    setThreadMessages((data as unknown as ThreadMessage[]) ?? []);
+  };
+
+  useEffect(() => {
+    if (!selectedId) {
+      setThreadMessages([]);
+      setMsgDraft('');
+      return;
+    }
+    void loadThread(selectedId);
+  }, [selectedId]);
+
+  useRealtimeRefresh(
+    'reservation_messages',
+    () => {
+      if (selectedId) void loadThread(selectedId);
+    },
+    {
+      filter: selectedId ? `reservation_id=eq.${selectedId}` : undefined,
+      enabled: !!selectedId,
+    },
+  );
+
+  useEffect(() => {
+    const id = selectedReservation?.id;
+    if (!id) return;
+    const row = reservations.find((r) => r.id === id);
+    if (row) setSelectedReservation((prev) => (prev?.id === id ? row : prev));
+  }, [reservations, selectedReservation?.id]);
+
+  const handleSendThreadMessage = async () => {
+    const body = msgDraft.trim();
+    if (!body || !userId || !selectedReservation) return;
+    setSendingMsg(true);
+    const { error } = await supabase.from('reservation_messages').insert({
+      reservation_id: selectedReservation.id,
+      author_id: userId,
+      body,
+      is_staff: false,
+    });
+    setSendingMsg(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setMsgDraft('');
+    await loadThread(selectedReservation.id);
+  };
 
   const fetchCancellationPolicy = async () => {
     const { data } = await supabase
@@ -236,7 +318,7 @@ export default function MyReservations() {
       {selectedReservation && (
         <Portal>
           <div className="modal-backdrop">
-             <div className="modal" style={{ maxWidth: 480 }}>
+             <div className="modal modal-xl" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                 <div className="flex-between" style={{ marginBottom: 24 }}>
                    <h3>Trip Summary</h3>
                    <button onClick={() => setSelectedReservation(null)} style={{ color: 'var(--slate-400)' }}><X size={20}/></button>
@@ -246,6 +328,13 @@ export default function MyReservations() {
                       <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 8 }}>Unique Trip Identifier</p>
                       <h2 style={{ fontSize: 24, fontWeight: 800 }}>{selectedReservation.reservation_id_str}</h2>
                    </div>
+
+                   {selectedReservation.customer_special_requests && (
+                     <div style={{ padding: 16, background: 'var(--slate-50)', borderRadius: 12, border: '1px solid var(--slate-100)' }}>
+                        <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 8 }}>Your note to dispatch</p>
+                        <p style={{ fontSize: 13, lineHeight: 1.55, margin: 0 }}>{selectedReservation.customer_special_requests}</p>
+                     </div>
+                   )}
                    
                    <div className="customer-modal-grid-2">
                       <div>
@@ -278,6 +367,136 @@ export default function MyReservations() {
                       <div>
                           <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 6 }}>Current Status</p>
                           <span className={`status-badge status-badge-${selectedReservation.status.toLowerCase().replace(/\s+/g, '-')}`}>{selectedReservation.status}</span>
+                      </div>
+                   </div>
+
+                   {(selectedReservation.dispatch_odometer_km != null ||
+                     selectedReservation.dispatch_fuel_level ||
+                     selectedReservation.dispatch_condition_notes) && (
+                     <div style={{ padding: 16, borderRadius: 12, border: '1px solid var(--slate-200)' }}>
+                        <p style={{ fontSize: 12, fontWeight: 800, marginBottom: 12 }}>Handover (dispatch)</p>
+                        <div className="customer-modal-grid-2" style={{ gap: 12 }}>
+                           {selectedReservation.dispatch_odometer_km != null && (
+                             <div>
+                               <p style={{ fontSize: 10, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 4 }}>Odometer</p>
+                               <p style={{ fontSize: 14, fontWeight: 700 }}>{selectedReservation.dispatch_odometer_km.toLocaleString()} km</p>
+                             </div>
+                           )}
+                           {selectedReservation.dispatch_fuel_level && (
+                             <div>
+                               <p style={{ fontSize: 10, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 4 }}>Fuel</p>
+                               <p style={{ fontSize: 14, fontWeight: 700 }}>{selectedReservation.dispatch_fuel_level}</p>
+                             </div>
+                           )}
+                           {selectedReservation.dispatch_condition_notes && (
+                             <div style={{ gridColumn: '1 / -1' }}>
+                               <p style={{ fontSize: 10, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 4 }}>Condition</p>
+                               <p style={{ fontSize: 13, lineHeight: 1.5 }}>{selectedReservation.dispatch_condition_notes}</p>
+                             </div>
+                           )}
+                           {selectedReservation.dispatch_recorded_at && (
+                             <p style={{ fontSize: 11, color: 'var(--slate-400)', gridColumn: '1 / -1' }}>
+                               Logged {formatDateTime(selectedReservation.dispatch_recorded_at)}
+                             </p>
+                           )}
+                        </div>
+                     </div>
+                   )}
+
+                   {(selectedReservation.return_odometer_km != null ||
+                     selectedReservation.return_fuel_level ||
+                     selectedReservation.return_condition_notes) && (
+                     <div style={{ padding: 16, borderRadius: 12, border: '1px solid var(--slate-200)' }}>
+                        <p style={{ fontSize: 12, fontWeight: 800, marginBottom: 12 }}>Return check-in</p>
+                        <div className="customer-modal-grid-2" style={{ gap: 12 }}>
+                           {selectedReservation.return_odometer_km != null && (
+                             <div>
+                               <p style={{ fontSize: 10, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 4 }}>Odometer</p>
+                               <p style={{ fontSize: 14, fontWeight: 700 }}>{selectedReservation.return_odometer_km.toLocaleString()} km</p>
+                             </div>
+                           )}
+                           {selectedReservation.return_fuel_level && (
+                             <div>
+                               <p style={{ fontSize: 10, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 4 }}>Fuel</p>
+                               <p style={{ fontSize: 14, fontWeight: 700 }}>{selectedReservation.return_fuel_level}</p>
+                             </div>
+                           )}
+                           {selectedReservation.km_driven != null && (
+                             <div className="flex-start" style={{ gap: 8, gridColumn: '1 / -1', padding: 10, background: 'var(--brand-gold-light)', borderRadius: 8 }}>
+                               <Gauge size={18} />
+                               <span style={{ fontSize: 14, fontWeight: 800 }}>Trip distance (from odometer): {selectedReservation.km_driven.toLocaleString()} km</span>
+                             </div>
+                           )}
+                           {selectedReservation.return_condition_notes && (
+                             <div style={{ gridColumn: '1 / -1' }}>
+                               <p style={{ fontSize: 10, color: 'var(--slate-400)', textTransform: 'uppercase', marginBottom: 4 }}>Notes</p>
+                               <p style={{ fontSize: 13, lineHeight: 1.5 }}>{selectedReservation.return_condition_notes}</p>
+                             </div>
+                           )}
+                           {selectedReservation.return_recorded_at && (
+                             <p style={{ fontSize: 11, color: 'var(--slate-400)', gridColumn: '1 / -1' }}>
+                               Logged {formatDateTime(selectedReservation.return_recorded_at)}
+                             </p>
+                           )}
+                        </div>
+                     </div>
+                   )}
+
+                   <div style={{ padding: 16, borderRadius: 12, border: '1px solid var(--slate-200)' }}>
+                      <div className="flex-start" style={{ gap: 8, marginBottom: 12 }}>
+                        <MessageSquare size={18} />
+                        <span style={{ fontWeight: 800, fontSize: 14 }}>Messages on this booking</span>
+                      </div>
+                      <p style={{ fontSize: 12, color: 'var(--slate-500)', marginBottom: 12, lineHeight: 1.5 }}>
+                        Chat with dispatch here—your booking reference stays tied to the conversation.
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 220, overflowY: 'auto', marginBottom: 12 }}>
+                        {threadMessages.length === 0 ? (
+                          <p style={{ fontSize: 13, color: 'var(--slate-400)' }}>No messages yet. Say hello and we’ll reply here.</p>
+                        ) : (
+                          threadMessages.map((m) => (
+                            <div
+                              key={m.id}
+                              style={{
+                                alignSelf: m.is_staff ? 'flex-start' : 'flex-end',
+                                maxWidth: '92%',
+                                padding: '10px 12px',
+                                borderRadius: 10,
+                                background: m.is_staff ? 'var(--slate-100)' : 'var(--slate-900)',
+                                color: m.is_staff ? 'var(--slate-900)' : 'white',
+                              }}
+                            >
+                              <div style={{ fontSize: 10, opacity: 0.85, marginBottom: 4 }}>
+                                {m.is_staff ? 'Dispatch' : 'You'}
+                                {m.profiles?.full_name && m.is_staff ? ` · ${m.profiles.full_name}` : ''} · {formatDateTime(m.created_at)}
+                              </div>
+                              <div style={{ fontSize: 13, lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{m.body}</div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      <div className="flex-start" style={{ gap: 8 }}>
+                        <input
+                          className="form-input"
+                          style={{ flex: 1 }}
+                          value={msgDraft}
+                          onChange={(e) => setMsgDraft(e.target.value)}
+                          placeholder="Write a message…"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              void handleSendThreadMessage();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-brand btn-sm"
+                          disabled={sendingMsg || !msgDraft.trim()}
+                          onClick={() => void handleSendThreadMessage()}
+                        >
+                          {sendingMsg ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+                        </button>
                       </div>
                    </div>
 

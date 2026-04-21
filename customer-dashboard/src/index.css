@@ -1009,6 +1009,10 @@ textarea {
   max-width: min(560px, 100vw - 24px);
 }
 
+.modal.modal-xl {
+  max-width: min(920px, 100vw - 24px);
+}
+
 @media (max-width: 540px) {
   .modal-backdrop {
     padding: 12px 10px !important;

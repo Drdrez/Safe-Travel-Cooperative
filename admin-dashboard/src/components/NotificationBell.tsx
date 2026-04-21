@@ -28,7 +28,6 @@ const KIND_SCREEN: Record<string, string> = {
   'admin.billing.submitted':   'billing',
   'admin.billing.refund':      'billing',
   'admin.ticket.new':          'support',
-  'admin.loan.new':            'loans',
   'reservation.confirmed':     'reservations',
   'reservation.in_progress':   'tracking',
   'reservation.completed':     'reservations',
@@ -36,10 +35,6 @@ const KIND_SCREEN: Record<string, string> = {
   'billing.paid':              'billing',
   'billing.submitted':         'billing',
   'billing.overdue':           'billing',
-  'loan.approved':             'loans',
-  'loan.rejected':             'loans',
-  'loan.disbursed':            'loans',
-  'loan.closed':               'loans',
   'payroll.posted':            'payroll',
 };
 
@@ -50,9 +45,7 @@ function resolveScreen(n: { kind: string; link: string | null }): string | null 
   if (l.includes('/support'))      return 'support';
   if (l.includes('/tracking'))     return 'tracking';
   if (l.includes('/reservations')) return 'reservations';
-  if (l.includes('/loans'))        return 'loans';
   if (l.includes('/payroll'))      return 'payroll';
-  if (l.includes('/members'))      return 'members';
   if (l.includes('/maintenance'))  return 'maintenance';
   return null;
 }

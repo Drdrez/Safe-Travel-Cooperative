@@ -10,6 +10,7 @@ import { Portal } from './ui/Portal';
 import { AuditTimeline } from './AuditTimeline';
 import { useRealtimeRefresh } from '@/lib/useRealtimeRefresh';
 import { usePagination, TablePagination } from '@/lib/usePagination';
+import { ReservationBookingPanel } from './ReservationBookingPanel';
 
 export function Reservations() {
   const [reservationList, setReservationList] = useState<any[]>([]);
@@ -23,11 +24,19 @@ export function Reservations() {
 
   const [newRes, setNewRes] = useState({
     customer_id: '', vehicle_id: '', pickup: '', destination: '',
-    startDate: '', endDate: '', cost: '', tripType: 'Round Trip'
+    startDate: '', endDate: '', cost: '', tripType: 'Round Trip', customer_special_requests: '',
   });
 
   useEffect(() => { fetchData(); }, []);
-  useRealtimeRefresh(['reservations', 'vehicles'], () => fetchData());
+  useRealtimeRefresh(['reservations', 'vehicles', 'reservation_messages'], () => fetchData());
+
+  useEffect(() => {
+    setDetailRes((prev: any) => {
+      if (!prev?.id) return prev;
+      const row = reservationList.find((r) => r.id === prev.id);
+      return row ?? prev;
+    });
+  }, [reservationList]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -37,7 +46,10 @@ export function Reservations() {
     if (resData) setReservationList(resData);
     const { data: custData } = await supabase.from('profiles').select('id, full_name').eq('role', 'customer');
     if (custData) setCustomers(custData);
-    const { data: vehData } = await supabase.from('vehicles').select('id, model, plate_number');
+    const { data: vehData } = await supabase
+      .from('vehicles')
+      .select('id, model, plate_number, status')
+      .eq('status', 'Available');
     if (vehData) setVehicles(vehData);
     setLoading(false);
   };
@@ -108,12 +120,13 @@ export function Reservations() {
       reservation_id_str: idStr, customer_id: newRes.customer_id, vehicle_id: newRes.vehicle_id || null,
       pickup_location: newRes.pickup || 'TBD', destination: newRes.destination || 'TBD',
       start_date: start.toISOString(), end_date: end.toISOString(),
-      status: 'Pending', estimated_cost_cents: costCents
+      status: 'Pending', estimated_cost_cents: costCents,
+      customer_special_requests: newRes.customer_special_requests.trim() || null,
     }]);
     if (error) { toast.error(error.message); return; }
     toast.success('Reservation created');
     setIsFormOpen(false);
-    setNewRes({ customer_id: '', vehicle_id: '', pickup: '', destination: '', startDate: '', endDate: '', cost: '', tripType: 'Round Trip' });
+    setNewRes({ customer_id: '', vehicle_id: '', pickup: '', destination: '', startDate: '', endDate: '', cost: '', tripType: 'Round Trip', customer_special_requests: '' });
     fetchData();
   };
 
@@ -129,6 +142,17 @@ export function Reservations() {
       );
       if (!available) {
         toast.error('Vehicle is already booked for overlapping dates. Reassign or cancel the conflict first.');
+        return;
+      }
+      const { data: veh } = await supabase
+        .from('vehicles')
+        .select('status')
+        .eq('id', res.vehicle_id)
+        .maybeSingle();
+      if (veh && veh.status !== 'Available') {
+        toast.error(
+          `This unit is ${veh.status} (e.g. under repair). Pick another vehicle or wait until it is back in service.`,
+        );
         return;
       }
     }
@@ -151,6 +175,11 @@ export function Reservations() {
     toast.success(`Status updated to ${newStatus}`);
     fetchData();
     setDetailRes(null);
+  };
+
+  const patchDetailReservation = (row: any) => {
+    setDetailRes(row);
+    setReservationList((list) => list.map((r) => (r.id === row.id ? row : r)));
   };
 
   const filtered = reservationList.filter(r => {
@@ -305,14 +334,27 @@ export function Reservations() {
                         <input className="form-input has-icon" value={newRes.destination} onChange={e => setNewRes({ ...newRes, destination: e.target.value })} placeholder="Destination address" />
                       </div>
                     </div>
+                    <div className="form-group">
+                      <label className="form-label">Customer note (optional)</label>
+                      <textarea
+                        className="form-input"
+                        rows={2}
+                        value={newRes.customer_special_requests}
+                        onChange={(e) => setNewRes({ ...newRes, customer_special_requests: e.target.value })}
+                        placeholder="Special requests, passenger count, cargo, occasion…"
+                      />
+                    </div>
                     <div className="grid-2">
-                      <div className="form-group">
-                        <label className="form-label">Vehicle</label>
-                        <select className="form-select" value={newRes.vehicle_id} onChange={e => setNewRes({ ...newRes, vehicle_id: e.target.value })}>
-                          <option value="">Manual Dispatch</option>
-                          {vehicles.map(v => <option key={v.id} value={v.id}>{v.model} - {v.plate_number}</option>)}
-                        </select>
-                      </div>
+                    <div className="form-group">
+                      <label className="form-label">Vehicle</label>
+                      <p style={{ fontSize: 11, color: 'var(--slate-500)', marginBottom: 6 }}>
+                        Only units marked Available are listed (not under repair or retired).
+                      </p>
+                      <select className="form-select" value={newRes.vehicle_id} onChange={e => setNewRes({ ...newRes, vehicle_id: e.target.value })}>
+                        <option value="">Manual Dispatch</option>
+                        {vehicles.map(v => <option key={v.id} value={v.id}>{v.model} - {v.plate_number}</option>)}
+                      </select>
+                    </div>
                       <div className="form-group">
                         <label className="form-label">Cost (PHP)</label>
                         <div className="form-input-wrapper">
@@ -339,7 +381,7 @@ export function Reservations() {
           <div className="modal-backdrop" onClick={(e) => {
              if (e.target === e.currentTarget) setDetailRes(null);
           }}>
-            <div className="modal modal-md">
+            <div className="modal modal-xl">
               <div className="modal-header">
                 <h2>Reservation {detailRes.reservation_id_str}</h2>
                 <button className="modal-close" onClick={() => setDetailRes(null)}><X size={20} /></button>
@@ -351,6 +393,11 @@ export function Reservations() {
                     <div><p className="form-label">Status</p><span className={cn('badge', badgeForReservation(detailRes.status))}>{detailRes.status}</span></div>
                     <div><p className="form-label">Pickup</p><p style={{ fontSize: 13 }}>{detailRes.pickup_location || 'TBD'}</p></div>
                     <div><p className="form-label">Destination</p><p style={{ fontSize: 13 }}>{detailRes.destination || 'TBD'}</p></div>
+                    <div><p className="form-label">Vehicle</p><p style={{ fontSize: 13 }}>
+                      {(detailRes.vehicles as any)?.model
+                        ? `${(detailRes.vehicles as any).model}${(detailRes.vehicles as any).plate_number ? ` · ${(detailRes.vehicles as any).plate_number}` : ''}`
+                        : 'Unassigned'}
+                    </p></div>
                     <div><p className="form-label">Start</p><p style={{ fontSize: 13 }}>{formatDate(detailRes.start_date)}</p></div>
                     <div><p className="form-label">End</p><p style={{ fontSize: 13 }}>{formatDate(detailRes.end_date)}</p></div>
                     <div><p className="form-label">Cost</p><p style={{ fontSize: 13, fontWeight: 700 }}>{formatPHP(fromCents(detailRes.estimated_cost_cents))}</p></div>
@@ -362,6 +409,8 @@ export function Reservations() {
                     {RESERVATION_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
+
+                <ReservationBookingPanel reservation={detailRes} onReservationPatch={patchDetailReservation} />
 
                 <div style={{ paddingTop: 8, borderTop: '1px solid var(--slate-100)' }}>
                   <AuditTimeline reservationId={detailRes.id} />

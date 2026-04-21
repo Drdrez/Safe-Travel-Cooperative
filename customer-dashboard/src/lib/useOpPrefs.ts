@@ -10,8 +10,6 @@ export type OpPrefs = {
   cancellation_window_hours: number;
   online_payments_enabled: boolean;
   enforce_cancellation_fee: boolean;
-  accept_member_applications: boolean;
-  accept_loan_applications: boolean;
   maintenance_mode: boolean;
 };
 
@@ -24,8 +22,6 @@ export const DEFAULT_OP_PREFS: OpPrefs = {
   cancellation_window_hours: 2,
   online_payments_enabled: true,
   enforce_cancellation_fee: true,
-  accept_member_applications: true,
-  accept_loan_applications: true,
   maintenance_mode: false,
 };
 

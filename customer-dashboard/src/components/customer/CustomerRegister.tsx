@@ -99,7 +99,7 @@ export default function CustomerRegister() {
         );
 
         if (data.session) {
-          toast.success('Membership granted! You are now logged in.', { id: toastId });
+          toast.success('Account created! You are now logged in.', { id: toastId });
           localStorage.setItem('customerLoggedIn', 'true');
           localStorage.setItem('customerName', formData.fullName);
           localStorage.setItem('customerEmail', formData.email);

@@ -19,6 +19,7 @@ export default function MakeReservation() {
     endDate: '',
     vehicleType: '',
     serviceType: 'withDriver',
+    specialRequests: '',
   });
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [orderSummary, setOrderSummary] = useState({ id: '', cost: 0 });
@@ -58,7 +59,7 @@ export default function MakeReservation() {
     return formData.serviceType === 'selfDrive' ? base * (1 - SELF_DRIVE_DISCOUNT) : base;
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -146,7 +147,8 @@ export default function MakeReservation() {
       start_date: new Date(formData.startDate).toISOString(),
       end_date: new Date(formData.endDate).toISOString(),
       status: 'Pending',
-      estimated_cost_cents: estimatedCostCents
+      estimated_cost_cents: estimatedCostCents,
+      customer_special_requests: formData.specialRequests.trim() || null,
     }]).select().single();
 
     if (resError) {
@@ -281,6 +283,23 @@ export default function MakeReservation() {
                                 : 'You will be responsible for driving the vehicle yourself.'}
                         </p>
                     </div>
+
+                    <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <label style={{ fontSize: 13, fontWeight: 800, color: 'var(--slate-600)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Notes for dispatch (optional)
+                        </label>
+                        <textarea
+                            name="specialRequests"
+                            value={formData.specialRequests}
+                            onChange={handleChange}
+                            rows={3}
+                            placeholder="Passenger count, luggage, occasion, preferred contact time, accessibility… Keeps everything in one place with your booking."
+                            style={{ minHeight: 88, resize: 'vertical' }}
+                        />
+                        <p style={{ fontSize: 12, color: 'var(--slate-400)', margin: 0, lineHeight: 1.5 }}>
+                            Booking here keeps dates, vehicle, messages, and handover records in one system—easier than coordinating only on Messenger.
+                        </p>
+                    </div>
                 </div>
             )}
 
@@ -410,6 +429,14 @@ export default function MakeReservation() {
                                             <p style={{ fontWeight: 700 }}>{formData.serviceType === 'withDriver' ? 'Our service with a professional driver' : 'Self-Drive Rental'}</p>
                                         </div>
                                     </div>
+                                    {formData.specialRequests.trim() && (
+                                      <div className="flex-start" style={{ marginTop: 8 }}>
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{ fontSize: 11, color: 'var(--slate-400)' }}>Notes for dispatch</p>
+                                            <p style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.45 }}>{formData.specialRequests.trim()}</p>
+                                        </div>
+                                      </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

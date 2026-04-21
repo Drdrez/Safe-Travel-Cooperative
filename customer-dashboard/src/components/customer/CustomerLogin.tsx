@@ -207,7 +207,7 @@ export default function CustomerLogin() {
 
           <div style={{ textAlign: 'center', marginTop: 24 }}>
             <p style={{ fontSize: 13, color: 'var(--slate-500)', fontWeight: 500 }}>
-              New member? <Link to="/register" style={{ color: 'var(--brand-gold-dark)', fontWeight: 700 }}>Apply for Membership</Link>
+              New here? <Link to="/register" style={{ color: 'var(--brand-gold-dark)', fontWeight: 700 }}>Create an account</Link>
             </p>
           </div>
         </form>

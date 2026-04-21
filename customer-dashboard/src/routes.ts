@@ -11,7 +11,7 @@ import BillingPayment from "./components/customer/BillingPayment";
 import TrackingPage from "./components/customer/TrackingPage";
 import ProfileSettings from "./components/customer/ProfileSettings";
 import Support from "./components/customer/Support";
-import Membership from "./components/customer/Membership";
+import IncidentReportsPage from "./components/customer/IncidentReportsPage";
 import CustomerLayout from "./components/customer/CustomerLayout";
 import PrivacyPolicy from "./components/customer/PrivacyPolicy";
 import TermsOfService from "./components/customer/TermsOfService";
@@ -78,8 +78,8 @@ export const router = createBrowserRouter([
         Component: Support,
       },
       {
-        path: "membership",
-        Component: Membership,
+        path: "incidents",
+        Component: IncidentReportsPage,
       },
     ],
   },

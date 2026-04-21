@@ -7,7 +7,6 @@ import {
   MapPin,
   Users,
   Wallet,
-  HandCoins,
   Car,
   CarFront,
   Caravan,
@@ -220,7 +219,7 @@ export default function Landing() {
             <a href="#why" className="hide-sm">Why us</a>
             <a href="#vehicles" className="hide-sm">Vehicles</a>
             <a href="#how" className="hide-sm">How it works</a>
-            <a href="#membership" className="hide-sm">Membership</a>
+            <a href="#cooperative" className="hide-sm">Cooperative</a>
             <Link to="/login" className="btn btn-outline btn-sm">Sign in</Link>
             <Link to="/register" className="btn btn-brand btn-sm" style={{ whiteSpace: 'nowrap' }}>
               Sign up <ArrowRight size={14} />
@@ -483,7 +482,7 @@ export default function Landing() {
       </section>
 
       <section
-        id="membership"
+        id="cooperative"
         style={{
           padding: '80px 24px',
           background:
@@ -515,18 +514,18 @@ export default function Landing() {
                 marginBottom: 20,
               }}
             >
-              <HandCoins size={12} /> Membership
+              <Users size={12} /> Owned by travelers
             </span>
             <h2 style={{ color: 'white', fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', marginBottom: 16 }}>
-              Join as a member, grow with us.
+              A cooperative you can book with like any carrier.
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 16, lineHeight: 1.6, marginBottom: 28 }}>
-              Members save money, can apply for loans, and help decide where the group goes next.
-              You can sign up to be a member right from your account.
+              Safe Travel Cooperative is built around fair pricing, well-maintained units, and drivers who know
+              the routes. Create an account to book trips, pay, and track rides in one place.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
               <Link to="/register" className="btn btn-brand" style={{ height: 48, padding: '0 22px' }}>
-                Join as a member <ArrowRight size={16} />
+                Get started <ArrowRight size={16} />
               </Link>
               <a
                 href="#why"
@@ -553,19 +552,19 @@ export default function Landing() {
             }}
           >
             <MemberPerk
-              icon={Wallet}
-              title="Savings that grow"
-              body="Put a little aside each month. Your savings earn a share of our yearly profits."
+              icon={ShieldCheck}
+              title="Safety first"
+              body="Drivers and vehicles are tracked so trips stay transparent from booking to drop-off."
             />
             <MemberPerk
-              icon={HandCoins}
-              title="Easy loans"
-              body="Ask for a loan when you need one, with fair rates and clear monthly payments."
+              icon={Clock}
+              title="Clear scheduling"
+              body="See your itinerary, get updates when your ride is on the way, and pay on your terms."
             />
             <MemberPerk
               icon={Users}
-              title="A voice that counts"
-              body="Vote at our yearly meeting and help pick the people who run the group."
+              title="People over profit"
+              body="We reinvest in the fleet and the team that keeps every trip on the road."
               last
             />
           </div>
@@ -646,7 +645,7 @@ export default function Landing() {
               <li><a href="#why">Why Safe Travel</a></li>
               <li><a href="#vehicles">Our vehicles</a></li>
               <li><a href="#how">How it works</a></li>
-              <li><a href="#membership">Membership</a></li>
+              <li><a href="#cooperative">Cooperative</a></li>
             </ul>
           </div>
           <div>

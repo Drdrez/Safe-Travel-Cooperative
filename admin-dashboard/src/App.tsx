@@ -13,9 +13,8 @@ import { Tracking } from './components/Tracking';
 import { Cancellations } from './components/Cancellations';
 import { Contracts } from './components/Contracts';
 import { SupportTickets } from './components/SupportTickets';
+import { IncidentReports } from './components/IncidentReports';
 import { Payroll } from './components/Payroll';
-import { Members } from './components/Members';
-import { Loans } from './components/Loans';
 import { Maintenance } from './components/Maintenance';
 import { Login } from './components/Login';
 import { ForgotPassword } from './components/ForgotPassword';
@@ -79,9 +78,8 @@ export default function App() {
       case 'cancellations': return <Cancellations />;
       case 'contracts': return <Contracts />;
       case 'support': return <SupportTickets />;
+      case 'incidents': return <IncidentReports />;
       case 'payroll': return <Payroll />;
-      case 'members': return <Members />;
-      case 'loans': return <Loans />;
       case 'maintenance': return <Maintenance />;
       default: return (
         <div className="empty-state" style={{ marginTop: 80 }}>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Wrench, Car, Fuel, User, Search, Activity, X, ChevronRight, Edit, Trash2 } from 'lucide-react';
+import { Plus, Wrench, Car, Fuel, User, Search, Activity, X, ChevronRight, Edit, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { formatPHP, fromCents } from '@/lib/formatters';
+import { formatPHP, fromCents, toCents } from '@/lib/formatters';
 import { VEHICLE_STATUSES } from '@/lib/status';
 import { toast } from 'sonner';
 import { Portal } from './ui/Portal';
@@ -11,6 +11,16 @@ import { usePagination, TablePagination } from '@/lib/usePagination';
 import { MaintenancePanel } from './MaintenancePanel';
 
 const VEHICLE_TYPES = ['Van', 'Sedan', 'SUV', 'Coaster', 'Bus'] as const;
+
+const COST_RESP_OPTIONS = [
+  'TBD',
+  'Cooperative',
+  'Customer',
+  'Insurance',
+  'Warranty',
+  'Split',
+] as const;
+
 const DEFAULT_FORM = {
   model: '',
   plate: '',
@@ -31,6 +41,28 @@ export function Vehicles() {
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [detailVehicle, setDetailVehicle] = useState<any>(null);
   const [form, setForm] = useState<typeof DEFAULT_FORM>(DEFAULT_FORM);
+
+  const [repairVehicle, setRepairVehicle] = useState<any | null>(null);
+  const [repairForm, setRepairForm] = useState({
+    issue: '',
+    costResponsibility: 'TBD' as (typeof COST_RESP_OPTIONS)[number],
+    estCostPhp: '',
+    scheduledFor: '',
+    extraNotes: '',
+  });
+  const [repairSaving, setRepairSaving] = useState(false);
+
+  const [completeVehicle, setCompleteVehicle] = useState<{
+    vehicle: any;
+    openRecord: { id: string; cost_cents: number } | null;
+  } | null>(null);
+  const [completeForm, setCompleteForm] = useState({
+    repairedBy: '',
+    completedOn: '',
+    workSummary: '',
+    finalCostPhp: '',
+  });
+  const [completeSaving, setCompleteSaving] = useState(false);
 
   useEffect(() => { fetchVehicles(); }, []);
   useRealtimeRefresh('vehicles', () => fetchVehicles());
@@ -108,11 +140,156 @@ export function Vehicles() {
     }
   };
 
-  const toggleMaintenance = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'Maintenance' ? 'Available' : 'Maintenance';
-    const { error } = await supabase.from('vehicles').update({ status: newStatus }).eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(newStatus === 'Maintenance' ? 'Moved to maintenance' : 'Returned to available');
+  const openRepairModal = (v: any) => {
+    setRepairVehicle(v);
+    setRepairForm({
+      issue: '',
+      costResponsibility: 'TBD',
+      estCostPhp: '',
+      scheduledFor: '',
+      extraNotes: '',
+    });
+  };
+
+  const submitRepairReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!repairVehicle) return;
+    const issue = repairForm.issue.trim();
+    if (!issue) {
+      toast.error('Describe the problem or damage (required).');
+      return;
+    }
+    setRepairSaving(true);
+    const { data: authData } = await supabase.auth.getUser();
+    let estCents = 0;
+    if (repairForm.estCostPhp.trim()) {
+      const n = Number(repairForm.estCostPhp);
+      if (!Number.isFinite(n) || n < 0) {
+        toast.error('Enter a valid estimated cost or leave it blank.');
+        setRepairSaving(false);
+        return;
+      }
+      estCents = toCents(n);
+    }
+    const { error } = await supabase.from('maintenance_records').insert([
+      {
+        vehicle_id: repairVehicle.id,
+        service_type: 'Repair / breakdown',
+        status: 'In Progress',
+        issue_description: issue,
+        cost_responsibility: repairForm.costResponsibility,
+        cost_cents: estCents,
+        scheduled_for: repairForm.scheduledFor || null,
+        notes: repairForm.extraNotes.trim() || null,
+        created_by: authData.user?.id || null,
+      },
+    ]);
+    setRepairSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success('Repair logged — unit locked to Maintenance until marked fixed.');
+    setRepairVehicle(null);
+    fetchVehicles();
+  };
+
+  const openCompleteModal = async (v: any) => {
+    const { data: openRow } = await supabase
+      .from('maintenance_records')
+      .select('id, cost_cents')
+      .eq('vehicle_id', v.id)
+      .in('status', ['Scheduled', 'In Progress'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    setCompleteVehicle({ vehicle: v, openRecord: openRow });
+    setCompleteForm({
+      repairedBy: '',
+      completedOn: d.toISOString().slice(0, 10),
+      workSummary: '',
+      finalCostPhp:
+        openRow && openRow.cost_cents
+          ? String(fromCents(openRow.cost_cents))
+          : '',
+    });
+  };
+
+  const submitCompleteRepair = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!completeVehicle) return;
+    const who = completeForm.repairedBy.trim();
+    const summary = completeForm.workSummary.trim();
+    if (!who || !summary) {
+      toast.error('Enter who performed the repair and what was done.');
+      return;
+    }
+    setCompleteSaving(true);
+    const v = completeVehicle.vehicle;
+    const or = completeVehicle.openRecord;
+    const completedOn = completeForm.completedOn || new Date().toISOString().slice(0, 10);
+
+    let finalCents = 0;
+    if (completeForm.finalCostPhp.trim()) {
+      const n = Number(completeForm.finalCostPhp);
+      if (!Number.isFinite(n) || n < 0) {
+        toast.error('Enter a valid final cost or leave it blank.');
+        setCompleteSaving(false);
+        return;
+      }
+      finalCents = toCents(n);
+    } else if (or) {
+      finalCents = or.cost_cents;
+    }
+
+    if (or) {
+      const { error } = await supabase
+        .from('maintenance_records')
+        .update({
+          status: 'Completed',
+          completed_on: completedOn,
+          repaired_by: who,
+          work_completed_summary: summary,
+          cost_cents: finalCents,
+        })
+        .eq('id', or.id);
+      setCompleteSaving(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+    } else {
+      const { error: vErr } = await supabase.from('vehicles').update({ status: 'Available' }).eq('id', v.id);
+      if (vErr) {
+        toast.error(vErr.message);
+        setCompleteSaving(false);
+        return;
+      }
+      const { error: insErr } = await supabase.from('maintenance_records').insert([
+        {
+          vehicle_id: v.id,
+          service_type: 'Administrative closure',
+          status: 'Completed',
+          completed_on: completedOn,
+          issue_description: 'No open repair ticket on file — manual return to service.',
+          cost_responsibility: 'TBD',
+          repaired_by: who,
+          work_completed_summary: summary,
+          cost_cents: finalCents,
+        },
+      ]);
+      setCompleteSaving(false);
+      if (insErr) {
+        toast.error(insErr.message);
+        return;
+      }
+    }
+
+    toast.success('Unit returned to Available when no other open repair is pending.');
+    setCompleteVehicle(null);
     fetchVehicles();
   };
 
@@ -223,11 +400,20 @@ export function Vehicles() {
                 </div>
               </div>
               <div className="vehicle-actions">
-                <button className="btn btn-outline btn-sm flex-1" onClick={() => toggleMaintenance(vehicle.id, vehicle.status)}>
-                  <Wrench size={14} />
-                  {vehicle.status === 'Maintenance' ? 'Fixed' : 'Repair'}
-                </button>
-                <button className="btn btn-primary btn-sm" style={{ width: 36, padding: 0 }} onClick={() => setDetailVehicle(vehicle)}>
+                {vehicle.status === 'Retired' ? (
+                  <button type="button" className="btn btn-outline btn-sm flex-1" disabled>
+                    <Wrench size={14} /> Retired
+                  </button>
+                ) : vehicle.status === 'Maintenance' ? (
+                  <button type="button" className="btn btn-outline btn-sm flex-1" onClick={() => openCompleteModal(vehicle)}>
+                    <Wrench size={14} /> Mark fixed
+                  </button>
+                ) : (
+                  <button type="button" className="btn btn-outline btn-sm flex-1" onClick={() => openRepairModal(vehicle)}>
+                    <Wrench size={14} /> Report repair
+                  </button>
+                )}
+                <button type="button" className="btn btn-primary btn-sm" style={{ width: 36, padding: 0 }} onClick={() => setDetailVehicle(vehicle)}>
                   <ChevronRight size={16} />
                 </button>
               </div>
@@ -323,6 +509,156 @@ export function Vehicles() {
                 <button type="submit" className="btn btn-brand btn-lg w-full" style={{ marginTop: 8 }}>
                   {editingVehicle ? 'Save Changes' : 'Save Unit'}
                 </button>
+              </form>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Report repair (issue + who pays) — creates In Progress ticket; DB trigger sets vehicle Maintenance */}
+      {repairVehicle && (
+        <Portal>
+          <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setRepairVehicle(null); }}>
+            <div className="modal modal-md">
+              <div className="modal-header">
+                <h2>Report repair — {repairVehicle.model}</h2>
+                <button type="button" className="modal-close" onClick={() => setRepairVehicle(null)}><X size={20} /></button>
+              </div>
+              <form onSubmit={submitRepairReport} className="space-y-4">
+                <p style={{ fontSize: 13, color: 'var(--slate-600)' }}>
+                  Units with an open repair cannot be selected for new bookings until marked fixed below or in Maintenance log.
+                </p>
+                <div className="form-group">
+                  <label className="form-label">What is wrong? (damage / symptoms)</label>
+                  <textarea
+                    className="form-textarea"
+                    rows={4}
+                    required
+                    value={repairForm.issue}
+                    onChange={e => setRepairForm({ ...repairForm, issue: e.target.value })}
+                    placeholder="e.g. Overheating, brake noise, body damage from collision…"
+                  />
+                </div>
+                <div className="grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Who pays / cost responsibility</label>
+                    <select
+                      className="form-select"
+                      value={repairForm.costResponsibility}
+                      onChange={e => setRepairForm({ ...repairForm, costResponsibility: e.target.value as (typeof COST_RESP_OPTIONS)[number] })}
+                    >
+                      {COST_RESP_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Estimated repair cost (₱, optional)</label>
+                    <input
+                      className="form-input"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={repairForm.estCostPhp}
+                      onChange={e => setRepairForm({ ...repairForm, estCostPhp: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Target shop date (optional)</label>
+                  <input
+                    className="form-input"
+                    type="date"
+                    value={repairForm.scheduledFor}
+                    onChange={e => setRepairForm({ ...repairForm, scheduledFor: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Other notes (optional)</label>
+                  <input
+                    className="form-input"
+                    value={repairForm.extraNotes}
+                    onChange={e => setRepairForm({ ...repairForm, extraNotes: e.target.value })}
+                    placeholder="Parts ordered, insurance claim #, etc."
+                  />
+                </div>
+                <div className="modal-footer" style={{ gap: 8 }}>
+                  <button type="button" className="btn btn-outline btn-md" onClick={() => setRepairVehicle(null)}>Cancel</button>
+                  <button type="submit" className="btn btn-brand btn-md" disabled={repairSaving}>
+                    {repairSaving ? <Loader2 size={16} className="animate-spin" /> : 'Save & place unit in Maintenance'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Mark fixed: who repaired, when, what was done */}
+      {completeVehicle && (
+        <Portal>
+          <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setCompleteVehicle(null); }}>
+            <div className="modal modal-md">
+              <div className="modal-header">
+                <h2>
+                  Mark fixed — {completeVehicle.vehicle.model}
+                  {!completeVehicle.openRecord && (
+                    <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--amber-700)', marginTop: 6 }}>
+                      No open repair ticket on file — use this only for legacy/manual cases.
+                    </span>
+                  )}
+                </h2>
+                <button type="button" className="modal-close" onClick={() => setCompleteVehicle(null)}><X size={20} /></button>
+              </div>
+              <form onSubmit={submitCompleteRepair} className="space-y-4">
+                <div className="form-group">
+                  <label className="form-label">Repaired by (shop / mechanic / internal)</label>
+                  <input
+                    className="form-input"
+                    required
+                    value={completeForm.repairedBy}
+                    onChange={e => setCompleteForm({ ...completeForm, repairedBy: e.target.value })}
+                    placeholder="e.g. Coop garage · Juan Dela Cruz"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Date completed / returned to service</label>
+                  <input
+                    className="form-input"
+                    type="date"
+                    required
+                    value={completeForm.completedOn}
+                    onChange={e => setCompleteForm({ ...completeForm, completedOn: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">What was done? (work summary)</label>
+                  <textarea
+                    className="form-textarea"
+                    rows={4}
+                    required
+                    value={completeForm.workSummary}
+                    onChange={e => setCompleteForm({ ...completeForm, workSummary: e.target.value })}
+                    placeholder="Parts replaced, tests passed, sign-off…"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Final cost billed (₱, optional)</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={completeForm.finalCostPhp}
+                    onChange={e => setCompleteForm({ ...completeForm, finalCostPhp: e.target.value })}
+                    placeholder="Leave blank to keep estimate"
+                  />
+                </div>
+                <div className="modal-footer" style={{ gap: 8 }}>
+                  <button type="button" className="btn btn-outline btn-md" onClick={() => setCompleteVehicle(null)}>Cancel</button>
+                  <button type="submit" className="btn btn-brand btn-md" disabled={completeSaving}>
+                    {completeSaving ? <Loader2 size={16} className="animate-spin" /> : 'Return unit to Available'}
+                  </button>
+                </div>
               </form>
             </div>
           </div>

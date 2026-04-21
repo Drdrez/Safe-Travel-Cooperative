@@ -23,10 +23,6 @@ const KIND_ROUTE: Record<string, string> = {
   'billing.paid':      '/customer/billing',
   'billing.submitted': '/customer/billing',
   'billing.overdue':   '/customer/billing',
-  'loan.approved':     '/customer/membership',
-  'loan.rejected':     '/customer/membership',
-  'loan.disbursed':    '/customer/membership',
-  'loan.closed':       '/customer/membership',
 };
 
 const KNOWN_ROUTES = new Set([
@@ -37,7 +33,7 @@ const KNOWN_ROUTES = new Set([
   '/customer/tracking',
   '/customer/profile',
   '/customer/support',
-  '/customer/membership',
+  '/customer/incidents',
 ]);
 
 function resolveRoute(n: { kind: string; link: string | null }): string | null {
