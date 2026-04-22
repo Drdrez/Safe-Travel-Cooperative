@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly VITE_MAPBOX_ACCESS_TOKEN?: string;
   readonly VITE_MAPTILER_API_KEY?: string;
+  /** Enables Google basemap + Directions (same blue route style as Google Maps). Enable Maps JavaScript API + Directions API. */
+  readonly VITE_GOOGLE_MAPS_API_KEY?: string;
 }
 
 interface ImportMeta {

@@ -17,6 +17,9 @@ import {
   type LatLng,
 } from '../../lib/routeGeometry';
 import { fetchDrivingRoute } from '../../lib/drivingDirections';
+import { GoogleCustomerTrackingMap } from './GoogleCustomerTrackingMap';
+
+const GOOGLE_MAPS_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined)?.trim() ?? '';
 
 type RouteStop = { label: string; coords: LatLng };
 
@@ -81,8 +84,9 @@ export default function TrackingPage() {
 
   const [mainPolyline, setMainPolyline] = useState<LatLng[]>(straightMain);
   const [arrivalPolyline, setArrivalPolyline] = useState<LatLng[]>(straightArrival);
-  const [tripRouteSource, setTripRouteSource] = useState<'mapbox' | 'osrm' | 'straight'>('straight');
+  const [tripRouteSource, setTripRouteSource] = useState<'google' | 'mapbox' | 'osrm' | 'straight'>('straight');
   const [routesLoading, setRoutesLoading] = useState(true);
+  const [routeReloadNonce, setRouteReloadNonce] = useState(0);
 
   const [currentPos, setCurrentPos] = useState<LatLng>(() =>
     positionAlongPolyline(TRIP_STOPS.map((s) => s.coords), 0.72),
@@ -125,6 +129,11 @@ export default function TrackingPage() {
   const segIdx = from;
 
   const loadRoutes = useCallback(async (): Promise<{ main: LatLng[] }> => {
+    if (GOOGLE_MAPS_KEY) {
+      setRouteReloadNonce((n) => n + 1);
+      return { main: straightMain };
+    }
+
     setRoutesLoading(true);
     const stops = TRIP_STOPS.map((s) => s.coords);
     const arrivalWpts: LatLng[] = [STAGING_POINT, pickup];
@@ -157,9 +166,16 @@ export default function TrackingPage() {
     return { main: nextMain };
   }, [pickup, straightMain, straightArrival]);
 
+  const onMainPolyline = useCallback((path: LatLng[]) => setMainPolyline(path), []);
+  const onArrivalPolyline = useCallback((path: LatLng[]) => setArrivalPolyline(path), []);
+  const onTripSourceGoogle = useCallback(() => setTripRouteSource('google'), []);
+  const onTripSourceStraight = useCallback(() => setTripRouteSource('straight'), []);
+  const onRoutesLoading = useCallback((v: boolean) => setRoutesLoading(v), []);
+
   useEffect(() => {
+    if (GOOGLE_MAPS_KEY) return;
     loadRoutes();
-  }, [loadRoutes]);
+  }, [GOOGLE_MAPS_KEY, loadRoutes]);
 
   useEffect(() => {
     if (isSimulating) return;
@@ -271,9 +287,13 @@ export default function TrackingPage() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     toast.info('Refreshing map and road routes…');
-    const { main } = await loadRoutes();
-    if (!isSimulating) {
-      setCurrentPos(positionAlongPolyline(main, progress / 100));
+    if (GOOGLE_MAPS_KEY) {
+      setRouteReloadNonce((n) => n + 1);
+    } else {
+      const { main } = await loadRoutes();
+      if (!isSimulating) {
+        setCurrentPos(positionAlongPolyline(main, progress / 100));
+      }
     }
     setIsRefreshing(false);
     toast.success('Routes and position updated');
@@ -284,7 +304,12 @@ export default function TrackingPage() {
       <div className="page-header">
         <div>
           <h1>Track My Trip</h1>
-          <p>Real-time vehicle location and trip status for your safety.</p>
+          <p>
+            Real-time vehicle location in <strong>Davao City</strong> (sample route).{' '}
+            {GOOGLE_MAPS_KEY
+              ? 'Using Google Maps for the basemap and driving line.'
+              : 'Add VITE_GOOGLE_MAPS_API_KEY for a Google Maps–style blue route.'}
+          </p>
         </div>
         <div className="page-header-actions" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
            <button onClick={startArrivalSimulation} disabled={isSimulating || routesLoading} className="btn btn-outline btn-sm" style={{ border: '1px solid var(--emerald-200)', color: 'var(--emerald-600)' }}>
@@ -370,6 +395,28 @@ export default function TrackingPage() {
         {/* Right Column: Live Map & Location Details */}
         <div className="space-y-6">
            <div className="card customer-tracking-map-card" style={{ padding: 0, position: 'relative', overflow: 'hidden', border: '1px solid var(--slate-200)', zIndex: 0 }}>
+              {GOOGLE_MAPS_KEY ? (
+                <GoogleCustomerTrackingMap
+                  apiKey={GOOGLE_MAPS_KEY}
+                  tripStops={TRIP_STOPS}
+                  stagingPoint={STAGING_POINT}
+                  pickup={pickup}
+                  straightMain={straightMain}
+                  straightArrival={straightArrival}
+                  mainPolyline={mainPolyline}
+                  arrivalPolyline={arrivalPolyline}
+                  currentPos={currentPos}
+                  simulationKind={simulationKind}
+                  isSimulating={isSimulating}
+                  routeReloadNonce={routeReloadNonce}
+                  vehicleLabel={vehicleNumber}
+                  onMainPolyline={onMainPolyline}
+                  onArrivalPolyline={onArrivalPolyline}
+                  onTripSourceGoogle={onTripSourceGoogle}
+                  onTripSourceStraight={onTripSourceStraight}
+                  onRoutesLoading={onRoutesLoading}
+                />
+              ) : (
               <MapContainer 
                 center={mapCenter} 
                 zoom={mapTiles.tileSize === 512 ? 12 : 11} 
@@ -426,24 +473,37 @@ export default function TrackingPage() {
 
                 <ZoomControl position="bottomright" />
               </MapContainer>
+              )}
               
-              <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                 <div className="flex-start" style={{ background: 'white', padding: '8px 12px', borderRadius: 20, boxShadow: 'var(--shadow-md)', border: '1px solid var(--slate-100)' }}>
+              <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, pointerEvents: 'none' }}>
+                 <div className="flex-start" style={{ background: 'white', padding: '8px 12px', borderRadius: 20, boxShadow: 'var(--shadow-md)', border: '1px solid var(--slate-100)', pointerEvents: 'auto' }}>
                     <Activity size={14} className={isSimulating ? "text-emerald-500 animate-pulse" : "text-slate-300"} />
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--slate-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         {isSimulating ? 'GPS Live Feed' : 'GPS Standby'}
                     </span>
                  </div>
-                 <div style={{ background: 'white', padding: '6px 10px', borderRadius: 12, boxShadow: 'var(--shadow-sm)', border: '1px solid var(--slate-100)', fontSize: 10, fontWeight: 600, color: 'var(--slate-500)', maxWidth: 280, textAlign: 'right' }}>
-                    Map: {mapTiles.provider === 'mapbox' ? 'Mapbox Streets' : mapTiles.provider === 'maptiler' ? 'MapTiler Streets' : 'CARTO Voyager'}
-                    <br />
-                    Roads:{' '}
-                    {tripRouteSource === 'mapbox'
-                      ? 'Mapbox Directions'
-                      : tripRouteSource === 'osrm'
-                        ? 'OSRM (OpenStreetMap)'
-                        : 'Straight fallback'}
-                    {routesLoading ? ' · loading…' : ` · ${(tripLengthM / 1000).toFixed(1)} km trip`}
+                 <div style={{ background: 'white', padding: '6px 10px', borderRadius: 12, boxShadow: 'var(--shadow-sm)', border: '1px solid var(--slate-100)', fontSize: 10, fontWeight: 600, color: 'var(--slate-500)', maxWidth: 280, textAlign: 'right', pointerEvents: 'auto' }}>
+                    {GOOGLE_MAPS_KEY ? (
+                      <>
+                        Map: Google Maps
+                        <br />
+                        Route:{' '}
+                        {tripRouteSource === 'google' ? 'Google Directions' : 'Straight fallback'}
+                        {routesLoading ? ' · loading…' : ` · ${(tripLengthM / 1000).toFixed(1)} km trip`}
+                      </>
+                    ) : (
+                      <>
+                        Map: {mapTiles.provider === 'mapbox' ? 'Mapbox Streets' : mapTiles.provider === 'maptiler' ? 'MapTiler Streets' : 'CARTO Voyager'}
+                        <br />
+                        Roads:{' '}
+                        {tripRouteSource === 'mapbox'
+                          ? 'Mapbox Directions'
+                          : tripRouteSource === 'osrm'
+                            ? 'OSRM (OpenStreetMap)'
+                            : 'Straight fallback'}
+                        {routesLoading ? ' · loading…' : ` · ${(tripLengthM / 1000).toFixed(1)} km trip`}
+                      </>
+                    )}
                  </div>
               </div>
               {routesLoading && (
