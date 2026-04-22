@@ -394,6 +394,25 @@ export default function TrackingPage() {
 
         {/* Right Column: Live Map & Location Details */}
         <div className="space-y-6">
+           {!GOOGLE_MAPS_KEY && import.meta.env.PROD && (
+              <div
+                className="card"
+                style={{
+                  padding: '12px 16px',
+                  background: '#fffbeb',
+                  border: '1px solid #fcd34d',
+                  fontSize: 13,
+                  color: '#92400e',
+                  lineHeight: 1.5,
+                }}
+              >
+                <strong>Map mode:</strong> This deployment was built <strong>without</strong>{' '}
+                <code style={{ fontSize: 12 }}>VITE_GOOGLE_MAPS_API_KEY</code>, so you see Leaflet. In Vercel →{' '}
+                <em>this customer-dashboard project</em> → Settings → Environment Variables, add that key for{' '}
+                <strong>Production</strong>, then <strong>Redeploy</strong>. Root Directory must be{' '}
+                <code style={{ fontSize: 12 }}>customer-dashboard</code>.
+              </div>
+           )}
            <div className="card customer-tracking-map-card" style={{ padding: 0, position: 'relative', overflow: 'hidden', border: '1px solid var(--slate-200)', zIndex: 0 }}>
               {GOOGLE_MAPS_KEY ? (
                 <GoogleCustomerTrackingMap

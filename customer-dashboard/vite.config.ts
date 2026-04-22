@@ -1,9 +1,25 @@
 
-  import { defineConfig } from 'vite';
-  import react from '@vitejs/plugin-react-swc';
-  import path from 'path';
+import { defineConfig, loadEnv } from 'vite';
+import react from '@vitejs/plugin-react-swc';
+import path from 'path';
 
-  export default defineConfig({
+const envDir = path.resolve(__dirname);
+
+export default defineConfig(({ mode, command }) => {
+  const loaded = loadEnv(mode, envDir, '');
+  const googleKey = loaded.VITE_GOOGLE_MAPS_API_KEY?.trim();
+
+  if (command === 'build' && !googleKey) {
+    console.warn(
+      '\n[customer-dashboard] VITE_GOOGLE_MAPS_API_KEY is empty at build time — the deployed app will use Leaflet (not Google Maps).\n' +
+        '  • Vercel: Project → Settings → Environment Variables → add VITE_GOOGLE_MAPS_API_KEY for Production (and Preview if needed), then Redeploy.\n' +
+        '  • Ensure this Vercel project Root Directory is "customer-dashboard" so this Vite app is what gets built.\n' +
+        '  • Local: put the key in customer-dashboard/.env and restart npm run dev.\n',
+    );
+  }
+
+  return {
+    envDir,
     plugins: [react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -57,4 +73,5 @@
       port: 3000,
       open: true,
     },
-  });
+  };
+});
