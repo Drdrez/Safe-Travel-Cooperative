@@ -346,11 +346,11 @@ function TrackingExperience({
         <div>
           <h1>Track My Trip</h1>
           <p>
-            Map and route follow <strong>your booking</strong> (pickup → destination).{' '}
-            {reservationStatus === 'Pending' && ' Trip is pending confirmation — route preview only.'}{' '}
+            Map and route reflect <strong>this booking’s pickup and destination</strong>.{' '}
+            {reservationStatus === 'Pending' && 'Pending confirmation — preview only.'}{' '}
             {GOOGLE_MAPS_KEY
-              ? 'Google Maps basemap; roads from Google Directions or OSRM/Mapbox if Google is blocked.'
-              : 'Add VITE_GOOGLE_MAPS_API_KEY for a Google Maps–style basemap.'}
+              ? 'Basemap: Google Maps. Driving line: Google Directions when available; otherwise an alternate road network.'
+              : 'Configure a Google Maps API key in the deployment environment to enable the Google basemap.'}
           </p>
         </div>
         <div className="page-header-actions" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
