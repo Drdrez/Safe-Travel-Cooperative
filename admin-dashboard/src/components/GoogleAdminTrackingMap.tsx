@@ -3,6 +3,7 @@ import { GoogleMap, Marker, Polyline, InfoWindow, useJsApiLoader } from '@react-
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchGoogleDrivingPath } from '@/lib/googleDirections';
+import { fetchDrivingRoute } from '@/lib/drivingDirections';
 import type { LatLng } from '@/lib/routeGeometry';
 import type { DemoStop } from '@/lib/davaoDemoRoute';
 
@@ -16,6 +17,9 @@ export type FleetTripMarker = {
   vehicleLabel: string;
   driver: string;
   destination: string;
+  pickupLabel: string;
+  pickupCoords: LatLng | null;
+  destinationCoords: LatLng | null;
   pos: [number, number];
   status: string;
   moving: boolean;
@@ -112,8 +116,17 @@ function GoogleAdminTrackingMapInner({
         const msg = e instanceof Error ? e.message : String(e);
         console.warn('Google Directions:', e);
         if (!cancelled) {
-          toast.error(`Google Directions failed (${msg}). Using straight segments.`);
-          onDemoPolyline(straightDemo);
+          try {
+            const { coordinates, source } = await fetchDrivingRoute(straightDemo);
+            onDemoPolyline(coordinates);
+            toast.info(
+              `Google Directions unavailable (${msg}). Using ${source === 'mapbox' ? 'Mapbox' : 'OSRM'} roads on the Google map.`,
+            );
+          } catch (e2) {
+            onDemoPolyline(straightDemo);
+            toast.warning(`Road route failed (${msg}). Using straight segments.`);
+            console.warn(e2);
+          }
         }
       } finally {
         if (!cancelled) onDemoRouteLoading(false);
@@ -135,9 +148,27 @@ function GoogleAdminTrackingMapInner({
     }
     if (!demoMode && trips.length) {
       const b = new google.maps.LatLngBounds();
-      trips.forEach((t) => b.extend({ lat: t.pos[0], lng: t.pos[1] }));
-      map.fitBounds(b, 48);
+      trips.forEach((t) => {
+        b.extend({ lat: t.pos[0], lng: t.pos[1] });
+        if (t.pickupCoords) b.extend({ lat: t.pickupCoords[0], lng: t.pickupCoords[1] });
+        if (t.destinationCoords) b.extend({ lat: t.destinationCoords[0], lng: t.destinationCoords[1] });
+      });
+      const ne = b.getNorthEast();
+      const sw = b.getSouthWest();
+      if (Math.abs(ne.lat() - sw.lat()) < 0.02 && Math.abs(ne.lng() - sw.lng()) < 0.02) {
+        b.extend({ lat: sw.lat() - 0.2, lng: sw.lng() - 0.2 });
+        b.extend({ lat: ne.lat() + 0.2, lng: ne.lng() + 0.2 });
+      }
+      map.fitBounds(b, { top: 48, right: 48, bottom: 48, left: 48 });
+      const listener = google.maps.event.addListenerOnce(map, 'idle', () => {
+        const z = map.getZoom();
+        if (z != null && z > 10) map.setZoom(10);
+      });
+      return () => {
+        google.maps.event.removeListener(listener);
+      };
     }
+    return undefined;
   }, [demoMode, demoPolyline, trips]);
 
   const defaultCenter = demoMode ? DAVAO_CENTER : FLEET_DEFAULT_CENTER;
@@ -149,6 +180,7 @@ function GoogleAdminTrackingMapInner({
       center={defaultCenter}
       zoom={demoMode ? 12 : 11}
       options={{
+        mapTypeId: 'roadmap',
         streetViewControl: false,
         mapTypeControl: false,
         fullscreenControl: true,
@@ -201,20 +233,35 @@ function GoogleAdminTrackingMapInner({
         </>
       )}
 
-      {!demoMode &&
-        trips.map((t) => (
-          <Marker
-            key={t.id}
-            position={{ lat: t.pos[0], lng: t.pos[1] }}
-            title={`${t.vehicleLabel} — ${t.driver}`}
-            onClick={() => setFleetInfoId(t.id)}
-            icon={{
-              url: fleetVehicleIconUrl(t.vehicleLabel, t.moving),
-              scaledSize: new google.maps.Size(128, 48),
-              anchor: new google.maps.Point(64, 48),
-            }}
-          />
-        ))}
+      {!demoMode && (
+        <>
+          {trips.map((t) =>
+            t.pickupCoords && t.destinationCoords ? (
+              <Polyline
+                key={`fleet-corridor-${t.id}`}
+                path={[
+                  { lat: t.pickupCoords[0], lng: t.pickupCoords[1] },
+                  { lat: t.destinationCoords[0], lng: t.destinationCoords[1] },
+                ]}
+                options={{ strokeColor: ROUTE_BLUE, strokeOpacity: 0.92, strokeWeight: 5 }}
+              />
+            ) : null,
+          )}
+          {trips.map((t) => (
+            <Marker
+              key={t.id}
+              position={{ lat: t.pos[0], lng: t.pos[1] }}
+              title={`${t.vehicleLabel} — ${t.driver}`}
+              onClick={() => setFleetInfoId(t.id)}
+              icon={{
+                url: fleetVehicleIconUrl(t.vehicleLabel, t.moving),
+                scaledSize: new google.maps.Size(128, 48),
+                anchor: new google.maps.Point(64, 48),
+              }}
+            />
+          ))}
+        </>
+      )}
 
       {!demoMode &&
         fleetInfoId &&
@@ -229,7 +276,8 @@ function GoogleAdminTrackingMapInner({
               <div style={{ minWidth: 180, padding: 4 }}>
                 <div style={{ fontWeight: 800, marginBottom: 4 }}>{t.vehicleLabel}</div>
                 <div style={{ fontSize: 12, color: '#64748b' }}>Driver: {t.driver}</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>Dest: {t.destination}</div>
+                <div style={{ fontSize: 11, color: '#64748b' }}>From: {t.pickupLabel}</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>To: {t.destination}</div>
                 <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4 }}>{t.status}</div>
               </div>
             </InfoWindow>

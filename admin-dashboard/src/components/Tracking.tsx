@@ -76,6 +76,10 @@ type ActiveTrip = {
   vehicleLabel: string;
   driver: string;
   destination: string;
+  pickupLabel: string;
+  /** Geocoded corridor for map bounds + route line (when booking saved coordinates). */
+  pickupCoords: LatLng | null;
+  destinationCoords: LatLng | null;
   pos: [number, number];
   status: string;
   moving: boolean;
@@ -268,15 +272,24 @@ export function Tracking() {
       return;
     }
 
-    const mapped: ActiveTrip[] = (data || []).map((r: any, i: number) => ({
-      id: r.id,
-      vehicleLabel: r.vehicles ? `${r.vehicles.plate_number || r.vehicles.model}` : 'Unassigned',
-      driver: r.profiles?.full_name || 'Unassigned',
-      destination: r.destination || 'On Route',
-      pos: fleetPositionFromBooking(r, i),
-      status: r.status,
-      moving: r.status === 'In Progress',
-    }));
+    const mapped: ActiveTrip[] = (data || []).map((r: any, i: number) => {
+      const pickupCoords: LatLng | null =
+        r.pickup_lat != null && r.pickup_lng != null ? [r.pickup_lat, r.pickup_lng] : null;
+      const destinationCoords: LatLng | null =
+        r.destination_lat != null && r.destination_lng != null ? [r.destination_lat, r.destination_lng] : null;
+      return {
+        id: r.id,
+        vehicleLabel: r.vehicles?.plate_number?.trim() || r.vehicles?.model?.trim() || 'Vehicle TBD',
+        driver: r.profiles?.full_name?.trim() || 'Unassigned',
+        destination: r.destination || 'On Route',
+        pickupLabel: r.pickup_location || 'Pickup',
+        pickupCoords,
+        destinationCoords,
+        pos: fleetPositionFromBooking(r, i),
+        status: r.status,
+        moving: r.status === 'In Progress',
+      };
+    });
 
     setTrips(mapped);
     setLoading(false);
@@ -292,7 +305,18 @@ export function Tracking() {
     [trips, tick],
   );
 
-  const positions = useMemo(() => tripsForMap.map(t => t.pos), [tripsForMap]);
+  /** Fleet fit-bounds must include pickup + destination, not only the truck (single-point fit breaks Google Maps zoom). */
+  const fleetBoundsPositions = useMemo(() => {
+    const pts: LatLng[] = [];
+    for (const t of tripsForMap) {
+      pts.push(t.pos);
+      if (t.pickupCoords) pts.push(t.pickupCoords);
+      if (t.destinationCoords) pts.push(t.destinationCoords);
+    }
+    return pts;
+  }, [tripsForMap]);
+
+  const positions = useMemo(() => fleetBoundsPositions, [fleetBoundsPositions]);
 
   const movingCount = trips.filter(t => t.moving).length;
   const stoppedCount = trips.length - movingCount;
@@ -303,7 +327,7 @@ export function Tracking() {
         <div>
           <h1>Vehicle Tracking</h1>
           <p>
-            Live fleet map or Davao multi-stop demo.
+            Live map uses each active booking’s pickup and destination when coordinates are saved (same as customer tracking). Optional Davao multi-stop demo is separate.
             {GOOGLE_MAPS_KEY ? ' Using Google Maps.' : ' Add VITE_GOOGLE_MAPS_API_KEY on Vercel for Google (otherwise Leaflet).'}
           </p>
         </div>
@@ -450,13 +474,23 @@ export function Tracking() {
                 ) : (
                   <>
                     <FitBounds positions={positions} />
+                    {tripsForMap.map(t =>
+                      t.pickupCoords && t.destinationCoords ? (
+                        <Polyline
+                          key={`corridor-${t.id}`}
+                          positions={[t.pickupCoords, t.destinationCoords]}
+                          pathOptions={{ color: '#4285F4', weight: 5, opacity: 0.88 }}
+                        />
+                      ) : null,
+                    )}
                     {tripsForMap.map(t => (
                       <Marker key={t.id} position={t.pos} icon={vehicleIcon(t.vehicleLabel, t.moving)}>
                         <Popup>
                           <div style={{ minWidth: 180 }}>
                             <div style={{ fontWeight: 800, marginBottom: 4 }}>{t.vehicleLabel}</div>
                             <div style={{ fontSize: 12, color: '#64748b' }}>Driver: {t.driver}</div>
-                            <div style={{ fontSize: 12, color: '#64748b' }}>Dest: {t.destination}</div>
+                            <div style={{ fontSize: 11, color: '#64748b' }}>From: {t.pickupLabel}</div>
+                            <div style={{ fontSize: 12, color: '#64748b' }}>To: {t.destination}</div>
                             <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>{t.status}</div>
                           </div>
                         </Popup>
@@ -508,9 +542,13 @@ export function Tracking() {
                     </div>
                     <span className={cn('badge', v.moving ? 'badge-success' : 'badge-default')}>{v.status}</span>
                   </div>
-                  <div className="flex-start gap-2" style={{ fontSize: 11 }}>
-                    <MapPin size={12} style={{ color: 'var(--brand-gold)' }} />
-                    <span style={{ color: 'var(--slate-500)' }}>{v.destination}</span>
+                  <div className="flex-start gap-2" style={{ fontSize: 11, flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span style={{ color: 'var(--slate-500)' }}>
+                      <strong style={{ color: 'var(--slate-700)' }}>From:</strong> {v.pickupLabel}
+                    </span>
+                    <span style={{ color: 'var(--slate-500)' }}>
+                      <strong style={{ color: 'var(--slate-700)' }}>To:</strong> {v.destination}
+                    </span>
                   </div>
                 </div>
               ))}
