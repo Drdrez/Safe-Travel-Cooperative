@@ -12,6 +12,9 @@ import { getMapTileLayerConfig } from '@/lib/mapTiles';
 import { fetchDrivingRoute } from '@/lib/drivingDirections';
 import { positionAlongPolyline, type LatLng } from '@/lib/routeGeometry';
 import { DAVAO_DEMO_STOPS } from '@/lib/davaoDemoRoute';
+import { GoogleAdminTrackingMap } from '@/components/GoogleAdminTrackingMap';
+
+const GOOGLE_MAPS_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined)?.trim() ?? '';
 
 const DefaultIcon = L.icon({
   iconUrl: markerIcon,
@@ -121,6 +124,10 @@ export function Tracking() {
   const [demoRouteLoading, setDemoRouteLoading] = useState(false);
   const [demoPlaying, setDemoPlaying] = useState(false);
   const [demoProgress, setDemoProgress] = useState(0);
+  const [demoRouteReloadNonce, setDemoRouteReloadNonce] = useState(0);
+
+  const onDemoPolyline = useCallback((path: LatLng[]) => setDemoPolyline(path), []);
+  const onDemoRouteLoading = useCallback((v: boolean) => setDemoRouteLoading(v), []);
 
   const demoCenter = useMemo((): LatLng => {
     const pts = demoPolyline;
@@ -134,7 +141,7 @@ export function Tracking() {
     [demoPolyline, demoProgress],
   );
 
-  const loadDemoRoute = useCallback(async () => {
+  const loadDemoRouteOsrm = useCallback(async () => {
     setDemoRouteLoading(true);
     try {
       const { coordinates, source } = await fetchDrivingRoute(straightDemo);
@@ -151,8 +158,17 @@ export function Tracking() {
 
   useEffect(() => {
     if (!demoMode) return;
-    loadDemoRoute();
-  }, [demoMode, loadDemoRoute]);
+    if (GOOGLE_MAPS_KEY) return;
+    loadDemoRouteOsrm();
+  }, [demoMode, GOOGLE_MAPS_KEY, loadDemoRouteOsrm]);
+
+  const reloadDemoRoute = useCallback(() => {
+    if (GOOGLE_MAPS_KEY) {
+      setDemoRouteReloadNonce((n) => n + 1);
+    } else {
+      loadDemoRouteOsrm();
+    }
+  }, [GOOGLE_MAPS_KEY, loadDemoRouteOsrm]);
 
   useEffect(() => {
     if (!demoPlaying) return;
@@ -239,7 +255,10 @@ export function Tracking() {
       <div className="page-header">
         <div>
           <h1>Vehicle Tracking</h1>
-          <p>Live fleet map or a sample multi-stop route (Davao) for demos—same pattern as customer tracking.</p>
+          <p>
+            Live fleet map or Davao multi-stop demo.
+            {GOOGLE_MAPS_KEY ? ' Using Google Maps.' : ' Add VITE_GOOGLE_MAPS_API_KEY on Vercel for Google (otherwise Leaflet).'}
+          </p>
         </div>
         <div className="page-header-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {demoMode ? (
@@ -306,7 +325,7 @@ export function Tracking() {
                   >
                     <RotateCcw size={14} /> Reset
                   </button>
-                  <button type="button" className="btn btn-outline btn-sm" onClick={loadDemoRoute} disabled={demoRouteLoading}>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={reloadDemoRoute} disabled={demoRouteLoading}>
                     <RefreshCw size={14} className={demoRouteLoading ? 'animate-spin' : undefined} /> Reload roads
                   </button>
                 </div>
@@ -328,6 +347,19 @@ export function Tracking() {
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Loader2 className="animate-spin" style={{ color: 'var(--slate-400)' }} />
               </div>
+            ) : GOOGLE_MAPS_KEY ? (
+              <GoogleAdminTrackingMap
+                apiKey={GOOGLE_MAPS_KEY}
+                demoMode={demoMode}
+                trips={trips}
+                demoStops={DAVAO_DEMO_STOPS}
+                straightDemo={straightDemo}
+                demoPolyline={demoPolyline}
+                demoVehiclePos={demoVehiclePos}
+                demoRouteReloadNonce={demoRouteReloadNonce}
+                onDemoPolyline={onDemoPolyline}
+                onDemoRouteLoading={onDemoRouteLoading}
+              />
             ) : (
               <MapContainer
                 center={demoMode ? demoCenter : MANILA}
@@ -477,8 +509,12 @@ export function Tracking() {
       <div style={{ fontSize: 11, color: 'var(--slate-400)' }}>
         <Navigation size={11} style={{ display: 'inline', marginRight: 4 }} />
         {demoMode
-          ? 'Demo uses Mapbox Directions (if VITE_MAPBOX_ACCESS_TOKEN is set) or OSRM; blue line and truck match the reference layout.'
-          : 'Fleet positions use deterministic spread around Metro Manila until telematics are wired.'}
+          ? GOOGLE_MAPS_KEY
+            ? 'Demo route from Google Directions; blue line matches Google Maps style.'
+            : 'Demo uses Mapbox Directions (if set) or OSRM; blue line and truck match the reference layout.'
+          : GOOGLE_MAPS_KEY
+            ? 'Fleet on Google Maps — click a marker for details. Wire telematics for real GPS.'
+            : 'Fleet positions use deterministic spread around Metro Manila until telematics are wired.'}
       </div>
     </div>
   );
