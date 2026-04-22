@@ -24,7 +24,8 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const MANILA: [number, number] = [14.5995, 120.9842];
+/** Inland Metro Manila (Makati CBD) — avoids Manila Bay / port water in simulated fleet view. */
+const INLAND_METRO_MANILA: [number, number] = [14.5547, 121.0244];
 
 const vehicleIcon = (label: string, moving: boolean) =>
   L.divIcon({
@@ -89,10 +90,42 @@ function hash01(s: string): number {
   return (h % 10000) / 10000;
 }
 
-function seededJitter(id: string, i: number, span = 0.12): [number, number] {
-  const a = hash01(id + ':lat:' + i);
-  const b = hash01(id + ':lng:' + i);
-  return [MANILA[0] + (a - 0.5) * span, MANILA[1] + (b - 0.5) * span];
+/** Same Davao corridor as customer “Track My Trip” when destination text matches. */
+function isDavaoCorridorDestination(destination: string): boolean {
+  const d = destination.toLowerCase();
+  if (!d.trim()) return false;
+  return (
+    /\b(davao|bangoy|dvo|lanang|matina|ecoland|samal)\b/.test(d) ||
+    d.includes('sm city davao') ||
+    d.includes('sm lanang') ||
+    d.includes('francisco bangoy')
+  );
+}
+
+/** Simulated GPS: Davao trips sit on the shared demo polyline; others spread inland in Metro Manila. */
+function fleetSimulatedPosition(id: string, destination: string, slotIndex: number): LatLng {
+  if (isDavaoCorridorDestination(destination)) {
+    const pts = DAVAO_DEMO_STOPS.map((s) => s.coords);
+    const along = 0.06 + hash01(id + ':route') * 0.88;
+    const base = positionAlongPolyline(pts, along);
+    const bump = (hash01(id + ':slot:' + slotIndex) - 0.5) * 0.00035;
+    return [base[0] + bump, base[1] + bump];
+  }
+  const a = hash01(id + ':lat:' + slotIndex);
+  const b = hash01(id + ':lng:' + slotIndex);
+  const span = 0.085;
+  return [
+    INLAND_METRO_MANILA[0] + (a - 0.5) * span,
+    INLAND_METRO_MANILA[1] + (b - 0.5) * span,
+  ];
+}
+
+/** Small deterministic “live” motion on roads (no random walk into water). */
+function applyFleetMotion(base: LatLng, moving: boolean, tick: number, id: string): LatLng {
+  if (!moving) return base;
+  const phase = tick * 0.12 + hash01(id + ':motion') * 6.28;
+  const amp = 0.0001;
+  return [base[0] + Math.sin(phase) * amp, base[1] + Math.cos(phase * 1.31) * amp];
 }
 
 function FitBounds({ positions }: { positions: Array<[number, number]> }) {
@@ -199,17 +232,6 @@ export function Tracking() {
   }, []);
   useRealtimeRefresh('reservations', () => fetchData());
 
-  useEffect(() => {
-    if (!trips.length || demoMode) return;
-    setTrips(prev => prev.map(t => ({
-      ...t,
-      pos: [
-        t.pos[0] + (Math.random() - 0.5) * 0.002,
-        t.pos[1] + (Math.random() - 0.5) * 0.002,
-      ],
-    })));
-  }, [tick, demoMode]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const fetchData = async () => {
     setRefreshing(true);
     const { count, error: cErr } = await supabase
@@ -235,7 +257,7 @@ export function Tracking() {
       vehicleLabel: r.vehicles ? `${r.vehicles.plate_number || r.vehicles.model}` : 'Unassigned',
       driver: r.profiles?.full_name || 'Unassigned',
       destination: r.destination || 'On Route',
-      pos: seededJitter(r.id, i),
+      pos: fleetSimulatedPosition(r.id, r.destination || '', i),
       status: r.status,
       moving: r.status === 'In Progress',
     }));
@@ -245,7 +267,16 @@ export function Tracking() {
     setRefreshing(false);
   };
 
-  const positions = useMemo(() => trips.map(t => t.pos), [trips]);
+  const tripsForMap = useMemo(
+    () =>
+      trips.map((t) => ({
+        ...t,
+        pos: applyFleetMotion(t.pos, t.moving, tick, t.id),
+      })),
+    [trips, tick],
+  );
+
+  const positions = useMemo(() => tripsForMap.map(t => t.pos), [tripsForMap]);
 
   const movingCount = trips.filter(t => t.moving).length;
   const stoppedCount = trips.length - movingCount;
@@ -351,7 +382,7 @@ export function Tracking() {
               <GoogleAdminTrackingMap
                 apiKey={GOOGLE_MAPS_KEY}
                 demoMode={demoMode}
-                trips={trips}
+                trips={tripsForMap}
                 demoStops={DAVAO_DEMO_STOPS}
                 straightDemo={straightDemo}
                 demoPolyline={demoPolyline}
@@ -362,7 +393,7 @@ export function Tracking() {
               />
             ) : (
               <MapContainer
-                center={demoMode ? demoCenter : MANILA}
+                center={demoMode ? demoCenter : INLAND_METRO_MANILA}
                 zoom={demoMode ? (mapTiles.tileSize === 512 ? 12 : 11) : 11}
                 style={{ height: '100%', width: '100%' }}
                 zoomControl={false}
@@ -403,7 +434,7 @@ export function Tracking() {
                 ) : (
                   <>
                     <FitBounds positions={positions} />
-                    {trips.map(t => (
+                    {tripsForMap.map(t => (
                       <Marker key={t.id} position={t.pos} icon={vehicleIcon(t.vehicleLabel, t.moving)}>
                         <Popup>
                           <div style={{ minWidth: 180 }}>
@@ -513,8 +544,8 @@ export function Tracking() {
             ? 'Demo route from Google Directions; blue line matches Google Maps style.'
             : 'Demo uses Mapbox Directions (if set) or OSRM; blue line and truck match the reference layout.'
           : GOOGLE_MAPS_KEY
-            ? 'Fleet on Google Maps — click a marker for details. Wire telematics for real GPS.'
-            : 'Fleet positions use deterministic spread around Metro Manila until telematics are wired.'}
+            ? 'Fleet map: Davao bookings align with the same demo corridor as customer tracking; others use inland Metro Manila until telematics. Click a marker for details.'
+            : 'Simulated positions: Davao corridor matches customer “Track My Trip”; other trips use inland Metro Manila until telematics are wired.'}
       </div>
     </div>
   );

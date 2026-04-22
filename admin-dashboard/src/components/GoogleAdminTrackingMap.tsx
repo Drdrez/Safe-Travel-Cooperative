@@ -6,7 +6,8 @@ import { fetchGoogleDrivingPath } from '@/lib/googleDirections';
 import type { LatLng } from '@/lib/routeGeometry';
 import type { DemoStop } from '@/lib/davaoDemoRoute';
 
-const MANILA_CENTER = { lat: 14.5995, lng: 120.9842 };
+/** Inland default when fleet bounds not yet fit (matches Tracking.tsx simulated anchor). */
+const FLEET_DEFAULT_CENTER = { lat: 14.5547, lng: 121.0244 };
 const DAVAO_CENTER = { lat: 7.0731, lng: 125.6131 };
 const ROUTE_BLUE = '#4285F4';
 
@@ -35,6 +36,19 @@ type Props = {
 
 function truckIconUrl(): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#0f172a"/><path fill="#eab308" d="M6 14h12v2H6zm2-4h6v3H8zm9 1.5h2l1.5 2.5H17z"/><circle cx="8.5" cy="17" r="1.2" fill="#fff"/><circle cx="15.5" cy="17" r="1.2" fill="#fff"/></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function escapeSvgText(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/** Same pill + plate treatment as customer Leaflet vehicle icon (readable on Google Maps). */
+function fleetVehicleIconUrl(label: string, moving: boolean): string {
+  const bg = moving ? '#0f172a' : '#475569';
+  const short = label.length > 14 ? `${label.slice(0, 13)}…` : label;
+  const text = escapeSvgText(short);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="48" viewBox="0 0 128 48"><rect x="2" y="4" width="124" height="40" rx="12" fill="${bg}" stroke="#eab308" stroke-width="2"/><text x="64" y="30" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800" font-family="system-ui,Segoe UI,sans-serif">${text}</text></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
@@ -126,7 +140,7 @@ function GoogleAdminTrackingMapInner({
     }
   }, [demoMode, demoPolyline, trips]);
 
-  const defaultCenter = demoMode ? DAVAO_CENTER : MANILA_CENTER;
+  const defaultCenter = demoMode ? DAVAO_CENTER : FLEET_DEFAULT_CENTER;
   const pathLatLng = demoPolyline.map(([lat, lng]) => ({ lat, lng }));
 
   return (
@@ -195,12 +209,9 @@ function GoogleAdminTrackingMapInner({
             title={`${t.vehicleLabel} — ${t.driver}`}
             onClick={() => setFleetInfoId(t.id)}
             icon={{
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 10,
-              fillColor: t.moving ? '#0f172a' : '#64748b',
-              fillOpacity: 1,
-              strokeColor: '#eab308',
-              strokeWeight: 2,
+              url: fleetVehicleIconUrl(t.vehicleLabel, t.moving),
+              scaledSize: new google.maps.Size(128, 48),
+              anchor: new google.maps.Point(64, 48),
             }}
           />
         ))}

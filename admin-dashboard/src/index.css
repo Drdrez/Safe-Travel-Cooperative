@@ -1548,6 +1548,25 @@ img { max-width: 100%; display: block; }
   align-items: start;
 }
 
+.admin-tracking-split > .space-y-4 {
+  min-width: 0;
+}
+
+.admin-tracking-split .card .flex-between {
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-tracking-split .card .flex-between > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-tracking-split .card .flex-between > span:last-child {
+  flex-shrink: 0;
+}
+
 @media (max-width: 1100px) {
   .admin-dashboard-split,
   .admin-tracking-split {
