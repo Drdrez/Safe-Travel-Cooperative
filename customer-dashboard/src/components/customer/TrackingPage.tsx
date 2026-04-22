@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Link } from 'react-router';
 import { Navigation, RefreshCw, Phone, Shield, Activity, MessageSquare, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
@@ -7,6 +8,9 @@ import L from 'leaflet';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { getMapTileLayerConfig } from '../../lib/mapTiles';
+import { supabase } from '../../lib/supabase';
+import { useRealtimeRefresh } from '../../lib/useRealtimeRefresh';
+import { geocodeAddress } from '../../lib/geocodePhoton';
 import {
   positionAlongPolyline,
   stopArcLengthsOnRoute,
@@ -22,20 +26,6 @@ import { GoogleCustomerTrackingMap } from './GoogleCustomerTrackingMap';
 const GOOGLE_MAPS_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined)?.trim() ?? '';
 
 type RouteStop = { label: string; coords: LatLng };
-
-/** Davao City demo route: ordered stops from south toward the airport. */
-const TRIP_STOPS: RouteStop[] = [
-  { label: 'Pickup — Matina, Davao City', coords: [7.0485, 125.5678] },
-  { label: 'Via — SM City Davao (Ecoland)', coords: [7.0563, 125.5855] },
-  { label: 'Via — SM Lanang Premier', coords: [7.0983, 125.6324] },
-  { label: 'Francisco Bangoy Airport (DVO)', coords: [7.1258, 125.6458] },
-];
-
-/** Staging point for “driver approaching pickup” simulation (off-route start). */
-const STAGING_POINT: LatLng = [
-  TRIP_STOPS[0].coords[0] - 0.014,
-  TRIP_STOPS[0].coords[1] - 0.016,
-];
 
 let DefaultIcon = L.icon({
     iconUrl: markerIcon,
@@ -73,43 +63,72 @@ function numberedStopIcon(index: number, isEnd: boolean) {
   });
 }
 
-export default function TrackingPage() {
+type TrackingExperienceProps = {
+  reservationIdStr: string;
+  reservationStatus: string;
+  tripStops: RouteStop[];
+  vehicleLabel: string;
+  driverName: string;
+  driverPhone: string;
+};
+
+function TrackingExperience({
+  reservationIdStr,
+  reservationStatus,
+  tripStops,
+  vehicleLabel,
+  driverName,
+  driverPhone,
+}: TrackingExperienceProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationKind, setSimulationKind] = useState<'trip' | 'arrival' | null>(null);
-  const [progress, setProgress] = useState(72);
-  const straightMain = useMemo(() => TRIP_STOPS.map((s) => s.coords), []);
-  const straightArrival = useMemo((): LatLng[] => [STAGING_POINT, TRIP_STOPS[0].coords], []);
-  const pickup = TRIP_STOPS[0].coords;
+  const initialProgress = reservationStatus === 'In Progress' ? 38 : reservationStatus === 'Confirmed' ? 12 : 8;
+  const [progress, setProgress] = useState(initialProgress);
 
-  const [mainPolyline, setMainPolyline] = useState<LatLng[]>(straightMain);
-  const [arrivalPolyline, setArrivalPolyline] = useState<LatLng[]>(straightArrival);
+  const pickup = tripStops[0].coords;
+  const straightMain = useMemo(() => tripStops.map((s) => s.coords), [tripStops]);
+  const stagingPoint = useMemo((): LatLng => [pickup[0] - 0.012, pickup[1] - 0.014], [pickup]);
+  const straightArrival = useMemo((): LatLng[] => [stagingPoint, pickup], [stagingPoint, pickup]);
+
+  const [mainPolyline, setMainPolyline] = useState<LatLng[]>(() => tripStops.map((s) => s.coords));
+  const [arrivalPolyline, setArrivalPolyline] = useState<LatLng[]>(() => [stagingPoint, pickup]);
   const [tripRouteSource, setTripRouteSource] = useState<'google' | 'mapbox' | 'osrm' | 'straight'>('straight');
   const [routesLoading, setRoutesLoading] = useState(true);
   const [routeReloadNonce, setRouteReloadNonce] = useState(0);
 
   const [currentPos, setCurrentPos] = useState<LatLng>(() =>
-    positionAlongPolyline(TRIP_STOPS.map((s) => s.coords), 0.72),
+    positionAlongPolyline(
+      tripStops.map((s) => s.coords),
+      initialProgress / 100,
+    ),
   );
   const simulationRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const vehicleNumber = 'DAV-ST 042';
   const mapTiles = useMemo(() => getMapTileLayerConfig(), []);
   const vehicleLeafletIcon = useMemo(
     () =>
       L.divIcon({
         className: 'custom-div-icon',
-        html: vehicleIconHtml(vehicleNumber),
+        html: vehicleIconHtml(vehicleLabel),
         iconSize: [0, 0],
         iconAnchor: [0, 0],
       }),
-    [vehicleNumber],
+    [vehicleLabel],
   );
 
   const stopIcons = useMemo(
-    () => TRIP_STOPS.map((_, i) => numberedStopIcon(i, i === TRIP_STOPS.length - 1)),
-    [],
+    () => tripStops.map((_, i) => numberedStopIcon(i, i === tripStops.length - 1)),
+    [tripStops],
   );
+
+  const mapAreaCenter = useMemo(() => {
+    const lats = tripStops.map((s) => s.coords[0]);
+    const lngs = tripStops.map((s) => s.coords[1]);
+    return {
+      lat: (Math.min(...lats) + Math.max(...lats)) / 2,
+      lng: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+    };
+  }, [tripStops]);
 
   const mapCenter = useMemo((): LatLng => {
     const lats = mainPolyline.map((c) => c[0]);
@@ -118,8 +137,8 @@ export default function TrackingPage() {
   }, [mainPolyline]);
 
   const stopArcs = useMemo(
-    () => stopArcLengthsOnRoute(TRIP_STOPS.map((s) => s.coords), mainPolyline),
-    [mainPolyline],
+    () => stopArcLengthsOnRoute(tripStops.map((s) => s.coords), mainPolyline),
+    [tripStops, mainPolyline],
   );
   const planarTotal = useMemo(() => polylinePlanarLength(mainPolyline), [mainPolyline]);
   const tripLengthM = useMemo(() => polylineLengthMeters(mainPolyline), [mainPolyline]);
@@ -135,8 +154,8 @@ export default function TrackingPage() {
     }
 
     setRoutesLoading(true);
-    const stops = TRIP_STOPS.map((s) => s.coords);
-    const arrivalWpts: LatLng[] = [STAGING_POINT, pickup];
+    const stops = tripStops.map((s) => s.coords);
+    const arrivalWpts: LatLng[] = [stagingPoint, pickup];
 
     const [tripRes, arrRes] = await Promise.allSettled([
       fetchDrivingRoute(stops),
@@ -164,12 +183,11 @@ export default function TrackingPage() {
 
     setRoutesLoading(false);
     return { main: nextMain };
-  }, [pickup, straightMain, straightArrival]);
+  }, [pickup, straightMain, straightArrival, stagingPoint, tripStops]);
 
   const onMainPolyline = useCallback((path: LatLng[]) => setMainPolyline(path), []);
   const onArrivalPolyline = useCallback((path: LatLng[]) => setArrivalPolyline(path), []);
-  const onTripSourceGoogle = useCallback(() => setTripRouteSource('google'), []);
-  const onTripSourceStraight = useCallback(() => setTripRouteSource('straight'), []);
+  const onRouteSource = useCallback((source: 'google' | 'mapbox' | 'osrm' | 'straight') => setTripRouteSource(source), []);
   const onRoutesLoading = useCallback((v: boolean) => setRoutesLoading(v), []);
 
   useEffect(() => {
@@ -193,28 +211,39 @@ export default function TrackingPage() {
   const legSnippet =
     simulationKind === 'arrival'
       ? 'Driver heading to your pickup address'
-      : `En route: ${TRIP_STOPS[from].label.split('—')[0].trim()} → ${TRIP_STOPS[to].label.split('—')[0].trim()}`;
+      : tripStops.length >= 2
+        ? `En route: ${tripStops[from]?.label?.split('—')[0]?.trim() ?? 'Start'} → ${tripStops[to]?.label?.split('—')[0]?.trim() ?? 'End'}`
+        : 'En route';
+
+  const destStop = tripStops[tripStops.length - 1];
+  const startStop = tripStops[0];
 
   const trackingData = {
-    reservationId: 'RES-XJ928',
-    vehicleNumber,
-    driverName: 'Ricardo Santos',
-    driverPhone: '+63 917 888 2026',
+    reservationId: reservationIdStr,
+    driverName,
+    driverPhone,
     currentLocation:
       simulationKind === 'arrival'
         ? progress < 50
-          ? 'Approaching Davao City (southern corridor)'
-          : 'Near your pickup (Matina)'
+          ? 'Approaching your pickup area'
+          : 'Near your pickup point'
         : progress >= 100
-          ? TRIP_STOPS[TRIP_STOPS.length - 1].label
-          : segIdx >= TRIP_STOPS.length - 2
-            ? 'Diversion Rd / DVO airport approach'
-            : segIdx === 0
-              ? 'Southern Davao (Matina–Ecoland)'
-              : 'Central Davao (Lanang area)',
-    destinationName: TRIP_STOPS[TRIP_STOPS.length - 1].label,
-    startLabel: TRIP_STOPS[0].label,
-    status: progress < 100 ? 'In Transit' : 'Arrived',
+          ? destStop.label
+          : progress > 66
+            ? 'Nearing destination'
+            : progress > 33
+              ? 'En route'
+              : 'Departed pickup',
+    destinationName: destStop.label,
+    startLabel: startStop.label,
+    status:
+      reservationStatus === 'Pending'
+        ? 'Awaiting confirmation'
+        : progress < 100
+          ? reservationStatus === 'In Progress'
+            ? 'In transit'
+            : 'Confirmed'
+          : 'Arrived (simulated)',
     estimatedArrival:
       progress >= 100
         ? 'Arrived'
@@ -222,7 +251,7 @@ export default function TrackingPage() {
           ? formatEtaMinutesFromRemainingKm(((100 - progress) / 100) * (arrivalLengthM / 1000))
           : formatEtaMinutesFromRemainingKm(((100 - progress) / 100) * (tripLengthM / 1000)),
     lastUpdate: 'Just now',
-    eta: '11:45 AM',
+    eta: '—',
   };
 
   const clearSimulation = () => {
@@ -239,7 +268,7 @@ export default function TrackingPage() {
     setSimulationKind('trip');
     setProgress(0);
     setCurrentPos(positionAlongPolyline(mainPolyline, 0));
-    toast.success('Trip simulation: Matina → Ecoland → Lanang → DVO Airport');
+    toast.success('Trip simulation along your booked route');
 
     let currentProgress = 0;
     simulationRef.current = setInterval(() => {
@@ -263,7 +292,7 @@ export default function TrackingPage() {
     setSimulationKind('arrival');
     setProgress(0);
     setCurrentPos(positionAlongPolyline(arrivalPolyline, 0));
-    toast.info('Driver is heading to your pickup (Matina, Davao City)');
+    toast.info('Driver is heading to your pickup location');
 
     let currentProgress = 0;
     simulationRef.current = setInterval(() => {
@@ -305,10 +334,11 @@ export default function TrackingPage() {
         <div>
           <h1>Track My Trip</h1>
           <p>
-            Real-time vehicle location in <strong>Davao City</strong> (sample route).{' '}
+            Map and route follow <strong>your booking</strong> (pickup → destination).{' '}
+            {reservationStatus === 'Pending' && ' Trip is pending confirmation — route preview only.'}{' '}
             {GOOGLE_MAPS_KEY
-              ? 'Using Google Maps for the basemap and driving line.'
-              : 'Add VITE_GOOGLE_MAPS_API_KEY for a Google Maps–style blue route.'}
+              ? 'Google Maps basemap; roads from Google Directions or OSRM/Mapbox if Google is blocked.'
+              : 'Add VITE_GOOGLE_MAPS_API_KEY for a Google Maps–style basemap.'}
           </p>
         </div>
         <div className="page-header-actions" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -366,7 +396,7 @@ export default function TrackingPage() {
            <div className="card" style={{ padding: 24 }}>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 24 }}>
                  <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--slate-100)', overflow: 'hidden', border: '2px solid var(--brand-gold)' }}>
-                    <img src={`https://ui-avatars.com/api/?name=${trackingData.driverName}&background=EAB308&color=fff`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(trackingData.driverName)}&background=EAB308&color=fff`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                  </div>
                  <div>
                     <h4 style={{ fontSize: 16, fontWeight: 800, marginBottom: 2 }}>{trackingData.driverName}</h4>
@@ -384,7 +414,11 @@ export default function TrackingPage() {
                  <button 
                   className="btn btn-brand w-full" 
                   style={{ gap: 8 }}
-                  onClick={() => window.location.href = `tel:${trackingData.driverPhone}`}
+                  disabled={!trackingData.driverPhone || trackingData.driverPhone === '—'}
+                  onClick={() => {
+                    const p = trackingData.driverPhone.replace(/[^\d+]/g, '');
+                    if (p) window.location.href = `tel:${p}`;
+                  }}
                  >
                     <Phone size={16} /> Contact
                  </button>
@@ -417,8 +451,9 @@ export default function TrackingPage() {
               {GOOGLE_MAPS_KEY ? (
                 <GoogleCustomerTrackingMap
                   apiKey={GOOGLE_MAPS_KEY}
-                  tripStops={TRIP_STOPS}
-                  stagingPoint={STAGING_POINT}
+                  mapAreaCenter={mapAreaCenter}
+                  tripStops={tripStops}
+                  stagingPoint={stagingPoint}
                   pickup={pickup}
                   straightMain={straightMain}
                   straightArrival={straightArrival}
@@ -428,11 +463,10 @@ export default function TrackingPage() {
                   simulationKind={simulationKind}
                   isSimulating={isSimulating}
                   routeReloadNonce={routeReloadNonce}
-                  vehicleLabel={vehicleNumber}
+                  vehicleLabel={vehicleLabel}
                   onMainPolyline={onMainPolyline}
                   onArrivalPolyline={onArrivalPolyline}
-                  onTripSourceGoogle={onTripSourceGoogle}
-                  onTripSourceStraight={onTripSourceStraight}
+                  onRouteSource={onRouteSource}
                   onRoutesLoading={onRoutesLoading}
                 />
               ) : (
@@ -467,12 +501,12 @@ export default function TrackingPage() {
                   />
                 )}
 
-                {TRIP_STOPS.map((stop, i) => (
+                {tripStops.map((stop, i) => (
                   <Marker key={stop.label} position={stop.coords} icon={stopIcons[i]}>
                     <Popup>
                       <div style={{ minWidth: 160 }}>
                         <div style={{ fontWeight: 800, marginBottom: 4 }}>
-                          {i === 0 ? 'Start' : i === TRIP_STOPS.length - 1 ? 'End' : `Via ${i}`}
+                          {i === 0 ? 'Start' : i === tripStops.length - 1 ? 'End' : `Via ${i}`}
                         </div>
                         <div style={{ fontSize: 12, color: '#475569' }}>{stop.label}</div>
                       </div>
@@ -507,7 +541,13 @@ export default function TrackingPage() {
                         Map: Google Maps
                         <br />
                         Route:{' '}
-                        {tripRouteSource === 'google' ? 'Google Directions' : 'Straight fallback'}
+                        {tripRouteSource === 'google'
+                          ? 'Google Directions'
+                          : tripRouteSource === 'mapbox'
+                            ? 'Mapbox (on Google map)'
+                            : tripRouteSource === 'osrm'
+                              ? 'OSRM (on Google map)'
+                              : 'Straight'}
                         {routesLoading ? ' · loading…' : ` · ${(tripLengthM / 1000).toFixed(1)} km trip`}
                       </>
                     ) : (
@@ -562,9 +602,9 @@ export default function TrackingPage() {
                 <p style={{ fontSize: 12, color: 'var(--slate-600)', marginBottom: 16, fontWeight: 600 }}>{legSnippet}</p>
               )}
               <div className="space-y-4">
-                 {TRIP_STOPS.map((stop, i) => {
+                 {tripStops.map((stop, i) => {
                     const isFirst = i === 0;
-                    const isLast = i === TRIP_STOPS.length - 1;
+                    const isLast = i === tripStops.length - 1;
                     const role = isFirst ? 'Start' : isLast ? 'End' : `Via ${i}`;
                     let rowState: 'done' | 'next' | 'pending' = 'pending';
                     if (simulationKind === 'arrival') {
@@ -627,6 +667,209 @@ export default function TrackingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+type LoadedReservation = {
+  id: string;
+  reservation_id_str: string;
+  status: string;
+  pickup_location: string;
+  destination: string;
+  pickup_lat: number | null;
+  pickup_lng: number | null;
+  destination_lat: number | null;
+  destination_lng: number | null;
+  vehicles: { plate_number: string | null; model: string | null } | null;
+  profiles: { full_name: string | null; contact_number: string | null } | null;
+};
+
+function formatDriverPhone(raw: string | null | undefined): string {
+  if (!raw?.trim()) return '';
+  return raw.trim();
+}
+
+export default function TrackingPage() {
+  const [loadState, setLoadState] = useState<'loading' | 'auth' | 'empty' | 'ready'>('loading');
+  const [payload, setPayload] = useState<{
+    row: LoadedReservation;
+    tripStops: RouteStop[];
+    vehicleLabel: string;
+    driverName: string;
+    driverPhone: string;
+  } | null>(null);
+
+  const load = useCallback(async () => {
+    setLoadState('loading');
+    const { data: userRes } = await supabase.auth.getUser();
+    const user = userRes?.user;
+    if (!user) {
+      setLoadState('auth');
+      setPayload(null);
+      return;
+    }
+
+    const sel =
+      'id, reservation_id_str, status, pickup_location, destination, pickup_lat, pickup_lng, destination_lat, destination_lng, start_date, vehicles(plate_number, model), profiles!reservations_driver_id_fkey(full_name, contact_number)';
+
+    let { data: row, error: activeErr } = await supabase
+      .from('reservations')
+      .select(sel)
+      .eq('customer_id', user.id)
+      .in('status', ['Confirmed', 'In Progress'])
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (activeErr) {
+      console.warn(activeErr);
+      if (/pickup_lat|column|does not exist/i.test(activeErr.message)) {
+        toast.error('Database update needed: run supabase/migrations/015_reservation_trip_coordinates.sql');
+      }
+      setLoadState('empty');
+      setPayload(null);
+      return;
+    }
+
+    if (!row) {
+      const { data: pending, error: pendErr } = await supabase
+        .from('reservations')
+        .select(sel)
+        .eq('customer_id', user.id)
+        .eq('status', 'Pending')
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (pendErr) {
+        console.warn(pendErr);
+        setLoadState('empty');
+        setPayload(null);
+        return;
+      }
+      row = pending ?? null;
+    }
+
+    if (!row) {
+      setLoadState('empty');
+      setPayload(null);
+      return;
+    }
+
+    let puLat = row.pickup_lat as number | null;
+    let puLng = row.pickup_lng as number | null;
+    let deLat = row.destination_lat as number | null;
+    let deLng = row.destination_lng as number | null;
+
+    if (puLat == null || puLng == null || deLat == null || deLng == null) {
+      const [pGeo, dGeo] = await Promise.all([
+        geocodeAddress(`${row.pickup_location}, Philippines`),
+        geocodeAddress(`${row.destination}, Philippines`),
+      ]);
+      if (pGeo && dGeo) {
+        puLat = pGeo.lat;
+        puLng = pGeo.lng;
+        deLat = dGeo.lat;
+        deLng = dGeo.lng;
+        if (row.status === 'Pending') {
+          await supabase
+            .from('reservations')
+            .update({
+              pickup_lat: pGeo.lat,
+              pickup_lng: pGeo.lng,
+              destination_lat: dGeo.lat,
+              destination_lng: dGeo.lng,
+            })
+            .eq('id', row.id);
+        }
+      }
+    }
+
+    if (puLat == null || puLng == null || deLat == null || deLng == null) {
+      setLoadState('empty');
+      setPayload(null);
+      return;
+    }
+
+    const tripStops: RouteStop[] = [
+      { label: `Pickup — ${row.pickup_location}`, coords: [puLat, puLng] },
+      { label: `Destination — ${row.destination}`, coords: [deLat, deLng] },
+    ];
+
+    const vehicleLabel =
+      row.vehicles?.plate_number?.trim() || row.vehicles?.model?.trim() || 'Vehicle TBD';
+
+    const driverName = row.profiles?.full_name?.trim() || 'Driver assigned at dispatch';
+    const driverPhone = formatDriverPhone(row.profiles?.contact_number);
+
+    setPayload({
+      row: row as LoadedReservation,
+      tripStops,
+      vehicleLabel,
+      driverName,
+      driverPhone: driverPhone || '—',
+    });
+    setLoadState('ready');
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useRealtimeRefresh('reservations', () => {
+    void load();
+  });
+
+  if (loadState === 'loading') {
+    return (
+      <div className="space-y-8" style={{ padding: 48, textAlign: 'center' }}>
+        <Loader2 className="animate-spin" size={32} style={{ color: 'var(--slate-400)', margin: '0 auto', display: 'block' }} />
+        <p style={{ color: 'var(--slate-500)', fontWeight: 600 }}>Loading your trip…</p>
+      </div>
+    );
+  }
+
+  if (loadState === 'auth') {
+    return (
+      <div className="space-y-8 animate-in fade-in" style={{ padding: 48, maxWidth: 480, margin: '0 auto' }}>
+        <h1>Track My Trip</h1>
+        <p style={{ color: 'var(--slate-600)' }}>Sign in to see the map for your active booking.</p>
+        <Link to="/login" className="btn btn-brand">
+          Sign in
+        </Link>
+      </div>
+    );
+  }
+
+  if (loadState === 'empty' || !payload) {
+    return (
+      <div className="space-y-8 animate-in fade-in" style={{ padding: 48, maxWidth: 560, margin: '0 auto' }}>
+        <h1>Track My Trip</h1>
+        <p style={{ color: 'var(--slate-600)', lineHeight: 1.6 }}>
+          No confirmed trip with a mappable route yet. Book a trip with pickup and destination, apply the latest database migration
+          (<code style={{ fontSize: 12 }}>015_reservation_trip_coordinates.sql</code>), then open this page again.
+        </p>
+        <div className="flex-start gap-3" style={{ flexWrap: 'wrap' }}>
+          <Link to="/customer/make-reservation" className="btn btn-brand">
+            New reservation
+          </Link>
+          <Link to="/customer/reservations" className="btn btn-outline">
+            My reservations
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <TrackingExperience
+      key={payload.row.id}
+      reservationIdStr={payload.row.reservation_id_str}
+      reservationStatus={payload.row.status}
+      tripStops={payload.tripStops}
+      vehicleLabel={payload.vehicleLabel}
+      driverName={payload.driverName}
+      driverPhone={payload.driverPhone}
+    />
   );
 }
 

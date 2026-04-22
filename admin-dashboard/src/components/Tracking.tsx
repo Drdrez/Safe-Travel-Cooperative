@@ -102,6 +102,20 @@ function isDavaoCorridorDestination(destination: string): boolean {
   );
 }
 
+/** When booking has geocoded pickup/destination, place unit along that corridor (matches customer map). */
+function fleetPositionFromBooking(r: Record<string, unknown>, slotIndex: number): LatLng {
+  const plat = r.pickup_lat as number | null | undefined;
+  const plng = r.pickup_lng as number | null | undefined;
+  const dlat = r.destination_lat as number | null | undefined;
+  const dlng = r.destination_lng as number | null | undefined;
+  if (plat != null && plng != null && dlat != null && dlng != null) {
+    const pu: LatLng = [plat, plng];
+    const de: LatLng = [dlat, dlng];
+    return positionAlongPolyline([pu, de], 0.07 + hash01(String(r.id) + ':booked') * 0.86);
+  }
+  return fleetSimulatedPosition(String(r.id), String(r.destination ?? ''), slotIndex);
+}
+
 /** Simulated GPS: Davao trips sit on the shared demo polyline; others spread inland in Metro Manila. */
 function fleetSimulatedPosition(id: string, destination: string, slotIndex: number): LatLng {
   if (isDavaoCorridorDestination(destination)) {
@@ -242,7 +256,9 @@ export function Tracking() {
 
     const { data, error } = await supabase
       .from('reservations')
-      .select('id, destination, status, vehicle_id, driver_id, profiles!reservations_driver_id_fkey(full_name), vehicles(id, model, plate_number, status)')
+      .select(
+        'id, destination, pickup_location, pickup_lat, pickup_lng, destination_lat, destination_lng, status, vehicle_id, driver_id, profiles!reservations_driver_id_fkey(full_name), vehicles(id, model, plate_number, status)',
+      )
       .in('status', ['Confirmed', 'In Progress']);
 
     if (error) {
@@ -257,7 +273,7 @@ export function Tracking() {
       vehicleLabel: r.vehicles ? `${r.vehicles.plate_number || r.vehicles.model}` : 'Unassigned',
       driver: r.profiles?.full_name || 'Unassigned',
       destination: r.destination || 'On Route',
-      pos: fleetSimulatedPosition(r.id, r.destination || '', i),
+      pos: fleetPositionFromBooking(r, i),
       status: r.status,
       moving: r.status === 'In Progress',
     }));
@@ -544,8 +560,8 @@ export function Tracking() {
             ? 'Demo route from Google Directions; blue line matches Google Maps style.'
             : 'Demo uses Mapbox Directions (if set) or OSRM; blue line and truck match the reference layout.'
           : GOOGLE_MAPS_KEY
-            ? 'Fleet map: Davao bookings align with the same demo corridor as customer tracking; others use inland Metro Manila until telematics. Click a marker for details.'
-            : 'Simulated positions: Davao corridor matches customer “Track My Trip”; other trips use inland Metro Manila until telematics are wired.'}
+            ? 'Fleet map uses each booking’s pickup→destination coordinates when saved; otherwise demo heuristics. Click a marker for details.'
+            : 'Simulated positions use saved trip coordinates when available; otherwise inland Metro Manila / Davao heuristics until telematics.'}
       </div>
     </div>
   );

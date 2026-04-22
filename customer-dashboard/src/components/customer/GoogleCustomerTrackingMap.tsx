@@ -3,18 +3,18 @@ import { GoogleMap, Marker, Polyline, useJsApiLoader } from '@react-google-maps/
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchGoogleDrivingPath } from '../../lib/googleDirections';
+import { fetchDrivingRoute } from '../../lib/drivingDirections';
 import type { LatLng } from '../../lib/routeGeometry';
 
 type RouteStop = { label: string; coords: LatLng };
-
-/** Map opens on Davao City; all sample stops are in the metro area. */
-const DAVAO_DEFAULT_CENTER = { lat: 7.0731, lng: 125.6131 };
 
 const GOOGLE_ROUTE_BLUE = '#4285F4';
 const GOOGLE_APPROACH_GREEN = '#137333';
 
 type Props = {
   apiKey: string;
+  /** Center before fitBounds runs (your trip area). */
+  mapAreaCenter: { lat: number; lng: number };
   tripStops: RouteStop[];
   stagingPoint: LatLng;
   pickup: LatLng;
@@ -29,8 +29,7 @@ type Props = {
   vehicleLabel: string;
   onMainPolyline: (path: LatLng[]) => void;
   onArrivalPolyline: (path: LatLng[]) => void;
-  onTripSourceGoogle: () => void;
-  onTripSourceStraight: () => void;
+  onRouteSource: (source: 'google' | 'mapbox' | 'osrm' | 'straight') => void;
   onRoutesLoading: (v: boolean) => void;
 };
 
@@ -79,6 +78,7 @@ export function GoogleCustomerTrackingMap(props: Props) {
 }
 
 function GoogleCustomerTrackingMapInner({
+  mapAreaCenter,
   tripStops,
   stagingPoint,
   pickup,
@@ -93,8 +93,7 @@ function GoogleCustomerTrackingMapInner({
   vehicleLabel,
   onMainPolyline,
   onArrivalPolyline,
-  onTripSourceGoogle,
-  onTripSourceStraight,
+  onRouteSource,
   onRoutesLoading,
 }: Props) {
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -113,15 +112,39 @@ function GoogleCustomerTrackingMapInner({
         if (cancelled) return;
         onMainPolyline(mainPath);
         onArrivalPolyline(arrPath);
-        onTripSourceGoogle();
+        onRouteSource('google');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         console.warn('Google Directions:', e);
-        toast.error(`Google Directions failed (${msg}). Using straight lines.`);
-        if (!cancelled) {
-          onMainPolyline(straightMain);
-          onArrivalPolyline(straightArrival);
-          onTripSourceStraight();
+        try {
+          const [tripRes, arrRes] = await Promise.allSettled([
+            fetchDrivingRoute(mainWpts),
+            fetchDrivingRoute(arrivalWpts),
+          ]);
+          if (cancelled) return;
+          if (tripRes.status === 'fulfilled') {
+            onMainPolyline(tripRes.value.coordinates);
+            onRouteSource(tripRes.value.source);
+            toast.info(
+              `Google Directions unavailable (${msg}). Using ${tripRes.value.source === 'mapbox' ? 'Mapbox' : 'OSRM'} roads on the Google map.`,
+            );
+          } else {
+            onMainPolyline(straightMain);
+            onRouteSource('straight');
+            toast.warning(`Could not load road route (${msg}). Using straight lines.`);
+          }
+          if (arrRes.status === 'fulfilled') {
+            onArrivalPolyline(arrRes.value.coordinates);
+          } else {
+            onArrivalPolyline(straightArrival);
+          }
+        } catch (e2) {
+          if (!cancelled) {
+            onMainPolyline(straightMain);
+            onArrivalPolyline(straightArrival);
+            onRouteSource('straight');
+            toast.error(`Route failed: ${e2 instanceof Error ? e2.message : String(e2)}`);
+          }
         }
       } finally {
         if (!cancelled) onRoutesLoading(false);
@@ -139,8 +162,7 @@ function GoogleCustomerTrackingMapInner({
     straightArrival,
     onMainPolyline,
     onArrivalPolyline,
-    onTripSourceGoogle,
-    onTripSourceStraight,
+    onRouteSource,
     onRoutesLoading,
   ]);
 
@@ -165,7 +187,7 @@ function GoogleCustomerTrackingMapInner({
   return (
     <GoogleMap
       mapContainerStyle={{ width: '100%', height: '100%' }}
-      center={DAVAO_DEFAULT_CENTER}
+      center={mapAreaCenter}
       zoom={12}
       options={{
         streetViewControl: false,

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { formatPHP, fromCents, cn } from '../../lib/utils';
 import { supabase } from '../../lib/supabase';
+import { geocodeAddress } from '../../lib/geocodePhoton';
 import { useRealtimeRefresh } from '../../lib/useRealtimeRefresh';
 import { Portal } from '../ui/Portal';
 
@@ -158,6 +159,29 @@ export default function MakeReservation() {
     }
 
     if (resData) {
+      try {
+        const [pickupPt, destPt] = await Promise.all([
+          geocodeAddress(`${formData.pickupLocation}, Philippines`),
+          geocodeAddress(`${formData.destination}, Philippines`),
+        ]);
+        if (pickupPt && destPt) {
+          const { error: geoErr } = await supabase
+            .from('reservations')
+            .update({
+              pickup_lat: pickupPt.lat,
+              pickup_lng: pickupPt.lng,
+              destination_lat: destPt.lat,
+              destination_lng: destPt.lng,
+            })
+            .eq('id', resData.id);
+          if (geoErr) console.warn('Could not save map coordinates:', geoErr.message);
+        } else {
+          toast.warning('Addresses could not be placed on the map yet; tracking will try again when you open Track My Trip.');
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+
       const invStr = 'INV-' + (idStr.split('-')[1] || Math.floor(Math.random() * 9999).toString());
       const { error: billingErr } = await supabase.from('billings').insert([{
         billing_id_str: invStr,
