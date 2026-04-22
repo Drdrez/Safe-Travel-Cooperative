@@ -95,9 +95,10 @@ function GoogleAdminTrackingMapInner({
           toast.success('Demo route loaded (Google Directions)');
         }
       } catch (e) {
-        console.warn(e);
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn('Google Directions:', e);
         if (!cancelled) {
-          toast.error('Google Directions failed; using straight segments.');
+          toast.error(`Google Directions failed (${msg}). Using straight segments.`);
           onDemoPolyline(straightDemo);
         }
       } finally {

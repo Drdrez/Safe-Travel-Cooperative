@@ -1,5 +1,23 @@
 import type { LatLng } from './routeGeometry';
 
+function toLatLngTuple(p: google.maps.LatLng | google.maps.LatLngLiteral): LatLng {
+  if (typeof (p as google.maps.LatLng).lat === 'function') {
+    const ll = p as google.maps.LatLng;
+    return [ll.lat(), ll.lng()];
+  }
+  const lit = p as google.maps.LatLngLiteral;
+  return [lit.lat, lit.lng];
+}
+
+function overviewPathToTuples(
+  overview: google.maps.LatLng[] | google.maps.MVCArray<google.maps.LatLng>,
+): LatLng[] {
+  const pts: Array<google.maps.LatLng | google.maps.LatLngLiteral> = Array.isArray(overview)
+    ? overview
+    : overview.getArray();
+  return pts.map(toLatLngTuple);
+}
+
 /** Google Maps-style driving polyline (requires Maps JavaScript API loaded). */
 export async function fetchGoogleDrivingPath(waypoints: LatLng[]): Promise<LatLng[]> {
   if (typeof google === 'undefined' || !google.maps) {
@@ -29,16 +47,19 @@ export async function fetchGoogleDrivingPath(waypoints: LatLng[]): Promise<LatLn
         waypoints: waypts,
         travelMode: google.maps.TravelMode.DRIVING,
         optimizeWaypoints: false,
+        region: 'ph',
       },
       (result, status) => {
-        if (status !== 'OK' || !result?.routes[0]?.overview_path) {
+        const overview = result?.routes[0]?.overview_path;
+        if (status !== 'OK' || !overview) {
           reject(new Error(status === 'OK' ? 'No route path' : String(status)));
           return;
         }
-        const path = result.routes[0].overview_path
-          .getArray()
-          .map((ll) => [ll.lat(), ll.lng()] as LatLng);
-        resolve(path);
+        try {
+          resolve(overviewPathToTuples(overview as google.maps.LatLng[] | google.maps.MVCArray<google.maps.LatLng>));
+        } catch (e) {
+          reject(e instanceof Error ? e : new Error(String(e)));
+        }
       },
     );
   });

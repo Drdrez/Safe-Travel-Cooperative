@@ -115,8 +115,9 @@ function GoogleCustomerTrackingMapInner({
         onArrivalPolyline(arrPath);
         onTripSourceGoogle();
       } catch (e) {
-        console.warn(e);
-        toast.error('Google Directions could not build the route; using straight lines.');
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn('Google Directions:', e);
+        toast.error(`Google Directions failed (${msg}). Using straight lines.`);
         if (!cancelled) {
           onMainPolyline(straightMain);
           onArrivalPolyline(straightArrival);
