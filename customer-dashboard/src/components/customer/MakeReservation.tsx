@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { formatPHP, fromCents, cn } from '../../lib/utils';
 import { supabase } from '../../lib/supabase';
-import { geocodeAddress } from '../../lib/geocodePhoton';
+import { geocodeAddress, tripLikelyDavaoLocalButCoordsFarApart } from '../../lib/geocodePhoton';
 import { useRealtimeRefresh } from '../../lib/useRealtimeRefresh';
 import { Portal } from '../ui/Portal';
 
@@ -160,10 +160,33 @@ export default function MakeReservation() {
 
     if (resData) {
       try {
-        const [pickupPt, destPt] = await Promise.all([
+        let pickupPt: Awaited<ReturnType<typeof geocodeAddress>> = null;
+        let destPt: Awaited<ReturnType<typeof geocodeAddress>> = null;
+        [pickupPt, destPt] = await Promise.all([
           geocodeAddress(`${formData.pickupLocation}, Philippines`),
           geocodeAddress(`${formData.destination}, Philippines`),
         ]);
+        if (
+          pickupPt &&
+          destPt &&
+          tripLikelyDavaoLocalButCoordsFarApart(
+            formData.pickupLocation,
+            formData.destination,
+            pickupPt.lat,
+            pickupPt.lng,
+            destPt.lat,
+            destPt.lng,
+          )
+        ) {
+          const [p2, d2] = await Promise.all([
+            geocodeAddress(`${formData.pickupLocation.trim()}, Davao City, Davao del Sur, Philippines`),
+            geocodeAddress(`${formData.destination.trim()}, Davao City, Davao del Sur, Philippines`),
+          ]);
+          if (p2 && d2) {
+            pickupPt = p2;
+            destPt = d2;
+          }
+        }
         if (pickupPt && destPt) {
           const { error: geoErr } = await supabase
             .from('reservations')

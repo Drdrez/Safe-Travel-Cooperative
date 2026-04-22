@@ -36,6 +36,21 @@ function disambiguationQueries(raw: string): string[] {
   }
   if (/\bcagayan\s*de\s*oro\b/i.test(lower)) hints.push('Cagayan de Oro, Misamis Oriental, Philippines');
   if (/\bgeneral\s*santos\b/i.test(lower)) hints.push('General Santos City, South Cotabato, Philippines');
+  // Davao metro landmarks (bare "Avida Towers" / "Abreeza" otherwise hit Luzon or wrong city)
+  if (/\babreeza\b/i.test(lower)) {
+    hints.push('Abreeza Mall, Davao City, Davao del Sur, Philippines');
+    hints.push('Abreeza Ayala Mall, Davao City, Philippines');
+  }
+  if (/\bavida\b/i.test(lower)) {
+    hints.push('Avida Towers Davao, Davao City, Davao del Sur, Philippines');
+    hints.push('Avida Homes Davao, Davao City, Philippines');
+  }
+  if (/\bsm\s*city\s*davao\b/i.test(lower) || /\bsm\s*davao\b/i.test(lower)) {
+    hints.push('SM City Davao, Davao City, Philippines');
+  }
+  if (/\bsm\s*lanang\b/i.test(lower)) {
+    hints.push('SM Lanang Premier, Davao City, Philippines');
+  }
   return hints;
 }
 
@@ -123,4 +138,46 @@ export function destinationLooksMisplacedForTandag(destinationText: string, lat:
   const dTandag = haversineMeters(p, TANDAG_CITY_REF);
   const dButuan = haversineMeters(p, BUTUAN_CITY_REF);
   return dButuan < 45000 && dButuan < dTandag * 0.9;
+}
+
+/**
+ * Pickup + destination text both look like a Davao metro trip (short drive), not a Luzon↔Mindanao run.
+ */
+export function bothEndpointsSuggestDavaoLocalCorridor(pickup: string, dest: string): boolean {
+  const a = pickup.trim().toLowerCase();
+  const b = dest.trim().toLowerCase();
+  if (!a || !b) return false;
+  const metroConflict = /\b(manila|makati|taguig|bgc|pasay|quezon\s*city|caloocan|cebu\s*city|cebu)\b/;
+  if (metroConflict.test(a) || metroConflict.test(b)) return false;
+
+  const hasDavaoRef = (s: string) =>
+    /\bdavao\b/.test(s) ||
+    /\b(bangoy|lanang|matina|ecoland|mintal|toril|buhangin|juna|sasa|agdao)\b/.test(s) ||
+    /\babreeza\b/.test(s) ||
+    /\bsm\s*(city\s*)?davao\b/.test(s) ||
+    /\bsm\s*lanang\b/.test(s) ||
+    /\bfrancisco\s*bangoy\b/.test(s) ||
+    /\bavida\s*davao\b/.test(s);
+
+  const avidaLikelyDavao = (s: string) =>
+    /\bavida\s*towers?\b/.test(s) || /\bavida\s*homes\b/.test(s);
+
+  return (hasDavaoRef(a) || avidaLikelyDavao(a)) && (hasDavaoRef(b) || avidaLikelyDavao(b));
+}
+
+/**
+ * Stored pickup/destination are implausibly far apart for a Davao-local itinerary (bad geocode).
+ */
+export function tripLikelyDavaoLocalButCoordsFarApart(
+  pickupText: string,
+  destText: string,
+  puLat: number,
+  puLng: number,
+  deLat: number,
+  deLng: number,
+  maxReasonableKm = 150,
+): boolean {
+  if (!bothEndpointsSuggestDavaoLocalCorridor(pickupText, destText)) return false;
+  const km = haversineMeters({ lat: puLat, lng: puLng }, { lat: deLat, lng: deLng }) / 1000;
+  return km > maxReasonableKm;
 }

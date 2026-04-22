@@ -8,6 +8,17 @@ type PhotonFeature = {
   properties?: { name?: string; country?: string; state?: string; type?: string };
 };
 
+function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371000;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
 function disambiguationQueries(raw: string): string[] {
   const q = raw.trim();
   if (!q) return [];
@@ -24,6 +35,20 @@ function disambiguationQueries(raw: string): string[] {
   }
   if (/\bcagayan\s*de\s*oro\b/i.test(lower)) hints.push('Cagayan de Oro, Misamis Oriental, Philippines');
   if (/\bgeneral\s*santos\b/i.test(lower)) hints.push('General Santos City, South Cotabato, Philippines');
+  if (/\babreeza\b/i.test(lower)) {
+    hints.push('Abreeza Mall, Davao City, Davao del Sur, Philippines');
+    hints.push('Abreeza Ayala Mall, Davao City, Philippines');
+  }
+  if (/\bavida\b/i.test(lower)) {
+    hints.push('Avida Towers Davao, Davao City, Davao del Sur, Philippines');
+    hints.push('Avida Homes Davao, Davao City, Philippines');
+  }
+  if (/\bsm\s*city\s*davao\b/i.test(lower) || /\bsm\s*davao\b/i.test(lower)) {
+    hints.push('SM City Davao, Davao City, Philippines');
+  }
+  if (/\bsm\s*lanang\b/i.test(lower)) {
+    hints.push('SM Lanang Premier, Davao City, Philippines');
+  }
   return hints;
 }
 
@@ -92,4 +117,40 @@ export async function geocodeAddress(query: string): Promise<GeocodeResult | nul
     if (picked) return picked;
   }
   return null;
+}
+
+export function bothEndpointsSuggestDavaoLocalCorridor(pickup: string, dest: string): boolean {
+  const a = pickup.trim().toLowerCase();
+  const b = dest.trim().toLowerCase();
+  if (!a || !b) return false;
+  const metroConflict = /\b(manila|makati|taguig|bgc|pasay|quezon\s*city|caloocan|cebu\s*city|cebu)\b/;
+  if (metroConflict.test(a) || metroConflict.test(b)) return false;
+
+  const hasDavaoRef = (s: string) =>
+    /\bdavao\b/.test(s) ||
+    /\b(bangoy|lanang|matina|ecoland|mintal|toril|buhangin|juna|sasa|agdao)\b/.test(s) ||
+    /\babreeza\b/.test(s) ||
+    /\bsm\s*(city\s*)?davao\b/.test(s) ||
+    /\bsm\s*lanang\b/.test(s) ||
+    /\bfrancisco\s*bangoy\b/.test(s) ||
+    /\bavida\s*davao\b/.test(s);
+
+  const avidaLikelyDavao = (s: string) =>
+    /\bavida\s*towers?\b/.test(s) || /\bavida\s*homes\b/.test(s);
+
+  return (hasDavaoRef(a) || avidaLikelyDavao(a)) && (hasDavaoRef(b) || avidaLikelyDavao(b));
+}
+
+export function tripLikelyDavaoLocalButCoordsFarApart(
+  pickupText: string,
+  destText: string,
+  puLat: number,
+  puLng: number,
+  deLat: number,
+  deLng: number,
+  maxReasonableKm = 150,
+): boolean {
+  if (!bothEndpointsSuggestDavaoLocalCorridor(pickupText, destText)) return false;
+  const km = haversineMeters({ lat: puLat, lng: puLng }, { lat: deLat, lng: deLng }) / 1000;
+  return km > maxReasonableKm;
 }

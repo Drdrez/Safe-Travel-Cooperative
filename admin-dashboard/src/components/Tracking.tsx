@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useRealtimeRefresh } from '@/lib/useRealtimeRefresh';
 import { getMapTileLayerConfig } from '@/lib/mapTiles';
 import { fetchDrivingRoute } from '@/lib/drivingDirections';
+import { geocodeAddress, tripLikelyDavaoLocalButCoordsFarApart } from '@/lib/geocodePhoton';
 import { positionAlongPolyline, type LatLng } from '@/lib/routeGeometry';
 import { DAVAO_DEMO_STOPS } from '@/lib/davaoDemoRoute';
 import { GoogleAdminTrackingMap } from '@/components/GoogleAdminTrackingMap';
@@ -295,24 +296,67 @@ export function Tracking() {
       return;
     }
 
-    const mapped: ActiveTrip[] = (data || []).map((r: any, i: number) => {
-      const pickupCoords: LatLng | null =
-        r.pickup_lat != null && r.pickup_lng != null ? [r.pickup_lat, r.pickup_lng] : null;
-      const destinationCoords: LatLng | null =
-        r.destination_lat != null && r.destination_lng != null ? [r.destination_lat, r.destination_lng] : null;
-      return {
-        id: r.id,
-        vehicleLabel: r.vehicles?.plate_number?.trim() || r.vehicles?.model?.trim() || 'Vehicle TBD',
-        driver: r.profiles?.full_name?.trim() || 'Unassigned',
-        destination: r.destination || 'On Route',
-        pickupLabel: r.pickup_location || 'Pickup',
-        pickupCoords,
-        destinationCoords,
-        pos: fleetPositionFromBooking(r, i),
-        status: r.status,
-        moving: r.status === 'In Progress',
-      };
-    });
+    const mapped: ActiveTrip[] = await Promise.all(
+      (data || []).map(async (r: any, i: number) => {
+        let plat = r.pickup_lat as number | null | undefined;
+        let plng = r.pickup_lng as number | null | undefined;
+        let dlat = r.destination_lat as number | null | undefined;
+        let dlng = r.destination_lng as number | null | undefined;
+
+        if (
+          plat != null &&
+          plng != null &&
+          dlat != null &&
+          dlng != null &&
+          tripLikelyDavaoLocalButCoordsFarApart(
+            String(r.pickup_location ?? ''),
+            String(r.destination ?? ''),
+            plat,
+            plng,
+            dlat,
+            dlng,
+          )
+        ) {
+          const [pGeo, dGeo] = await Promise.all([
+            geocodeAddress(`${String(r.pickup_location).trim()}, Davao City, Davao del Sur, Philippines`),
+            geocodeAddress(`${String(r.destination).trim()}, Davao City, Davao del Sur, Philippines`),
+          ]);
+          if (pGeo && dGeo) {
+            plat = pGeo.lat;
+            plng = pGeo.lng;
+            dlat = dGeo.lat;
+            dlng = dGeo.lng;
+            await supabase
+              .from('reservations')
+              .update({
+                pickup_lat: plat,
+                pickup_lng: plng,
+                destination_lat: dlat,
+                destination_lng: dlng,
+              })
+              .eq('id', r.id);
+          }
+        }
+
+        const rFixed = { ...r, pickup_lat: plat, pickup_lng: plng, destination_lat: dlat, destination_lng: dlng };
+        const pickupCoords: LatLng | null =
+          plat != null && plng != null ? [plat, plng] : null;
+        const destinationCoords: LatLng | null =
+          dlat != null && dlng != null ? [dlat, dlng] : null;
+        return {
+          id: r.id,
+          vehicleLabel: r.vehicles?.plate_number?.trim() || r.vehicles?.model?.trim() || 'Vehicle TBD',
+          driver: r.profiles?.full_name?.trim() || 'Unassigned',
+          destination: r.destination || 'On Route',
+          pickupLabel: r.pickup_location || 'Pickup',
+          pickupCoords,
+          destinationCoords,
+          pos: fleetPositionFromBooking(rFixed, i),
+          status: r.status,
+          moving: r.status === 'In Progress',
+        };
+      }),
+    );
 
     setTrips(mapped);
     setLoading(false);

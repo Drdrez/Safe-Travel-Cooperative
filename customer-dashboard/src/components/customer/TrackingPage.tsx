@@ -10,7 +10,11 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { getMapTileLayerConfig } from '../../lib/mapTiles';
 import { supabase } from '../../lib/supabase';
 import { useRealtimeRefresh } from '../../lib/useRealtimeRefresh';
-import { geocodeAddress, destinationLooksMisplacedForTandag } from '../../lib/geocodePhoton';
+import {
+  geocodeAddress,
+  destinationLooksMisplacedForTandag,
+  tripLikelyDavaoLocalButCoordsFarApart,
+} from '../../lib/geocodePhoton';
 import {
   positionAlongPolyline,
   stopArcLengthsOnRoute,
@@ -794,6 +798,35 @@ export default function TrackingPage() {
           await supabase
             .from('reservations')
             .update({ destination_lat: fix.lat, destination_lng: fix.lng })
+            .eq('id', row.id);
+        }
+      }
+
+      if (
+        puLat != null &&
+        puLng != null &&
+        deLat != null &&
+        deLng != null &&
+        tripLikelyDavaoLocalButCoordsFarApart(row.pickup_location || '', row.destination || '', puLat, puLng, deLat, deLng)
+      ) {
+        const [pGeo, dGeo] = await Promise.all([
+          geocodeAddress(`${String(row.pickup_location).trim()}, Davao City, Davao del Sur, Philippines`),
+          geocodeAddress(`${String(row.destination).trim()}, Davao City, Davao del Sur, Philippines`),
+        ]);
+        if (pGeo && dGeo) {
+          puLat = pGeo.lat;
+          puLng = pGeo.lng;
+          deLat = dGeo.lat;
+          deLng = dGeo.lng;
+          toast.info('Map route corrected to Davao City for your pickup and destination.');
+          await supabase
+            .from('reservations')
+            .update({
+              pickup_lat: pGeo.lat,
+              pickup_lng: pGeo.lng,
+              destination_lat: dGeo.lat,
+              destination_lng: dGeo.lng,
+            })
             .eq('id', row.id);
         }
       }
