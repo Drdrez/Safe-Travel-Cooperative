@@ -698,6 +698,7 @@ type LoadedReservation = {
   status: string;
   pickup_location: string;
   destination: string;
+  start_date: string;
   pickup_lat: number | null;
   pickup_lng: number | null;
   destination_lat: number | null;
@@ -712,7 +713,8 @@ function formatDriverPhone(raw: string | null | undefined): string {
 }
 
 export default function TrackingPage() {
-  const [loadState, setLoadState] = useState<'loading' | 'auth' | 'empty' | 'ready'>('loading');
+  const [loadState, setLoadState] = useState<'loading' | 'auth' | 'empty' | 'ready' | 'awaiting'>('loading');
+  const [awaitingRow, setAwaitingRow] = useState<LoadedReservation | null>(null);
   const [payload, setPayload] = useState<{
     row: LoadedReservation;
     tripStops: RouteStop[];
@@ -723,6 +725,7 @@ export default function TrackingPage() {
 
   const load = useCallback(async () => {
     setLoadState('loading');
+    setAwaitingRow(null);
     const { data: userRes } = await supabase.auth.getUser();
     const user = userRes?.user;
     if (!user) {
@@ -734,7 +737,7 @@ export default function TrackingPage() {
     const sel =
       'id, reservation_id_str, status, pickup_location, destination, pickup_lat, pickup_lng, destination_lat, destination_lng, start_date, vehicles(plate_number, model), profiles!reservations_driver_id_fkey(full_name, contact_number)';
 
-    let { data: row, error: activeErr } = await supabase
+    const { data: activeRow, error: activeErr } = await supabase
       .from('reservations')
       .select(sel)
       .eq('customer_id', user.id)
@@ -753,46 +756,23 @@ export default function TrackingPage() {
       return;
     }
 
-    if (!row) {
-      const { data: pending, error: pendErr } = await supabase
-        .from('reservations')
-        .select(sel)
-        .eq('customer_id', user.id)
-        .eq('status', 'Pending')
-        .order('start_date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (pendErr) {
-        console.warn(pendErr);
-        setLoadState('empty');
-        setPayload(null);
-        return;
-      }
-      row = pending ?? null;
-    }
+    if (activeRow) {
+      let row = activeRow as LoadedReservation;
+      let puLat = row.pickup_lat as number | null;
+      let puLng = row.pickup_lng as number | null;
+      let deLat = row.destination_lat as number | null;
+      let deLng = row.destination_lng as number | null;
 
-    if (!row) {
-      setLoadState('empty');
-      setPayload(null);
-      return;
-    }
-
-    let puLat = row.pickup_lat as number | null;
-    let puLng = row.pickup_lng as number | null;
-    let deLat = row.destination_lat as number | null;
-    let deLng = row.destination_lng as number | null;
-
-    if (puLat == null || puLng == null || deLat == null || deLng == null) {
-      const [pGeo, dGeo] = await Promise.all([
-        geocodeAddress(row.pickup_location || ''),
-        geocodeAddress(row.destination || ''),
-      ]);
-      if (pGeo && dGeo) {
-        puLat = pGeo.lat;
-        puLng = pGeo.lng;
-        deLat = dGeo.lat;
-        deLng = dGeo.lng;
-        if (row.status === 'Pending') {
+      if (puLat == null || puLng == null || deLat == null || deLng == null) {
+        const [pGeo, dGeo] = await Promise.all([
+          geocodeAddress(row.pickup_location || ''),
+          geocodeAddress(row.destination || ''),
+        ]);
+        if (pGeo && dGeo) {
+          puLat = pGeo.lat;
+          puLng = pGeo.lng;
+          deLat = dGeo.lat;
+          deLng = dGeo.lng;
           await supabase
             .from('reservations')
             .update({
@@ -804,52 +784,73 @@ export default function TrackingPage() {
             .eq('id', row.id);
         }
       }
-    }
 
-    if (
-      deLat != null &&
-      deLng != null &&
-      destinationLooksMisplacedForTandag(row.destination || '', deLat, deLng)
-    ) {
-      const fix = await geocodeAddress(row.destination || '');
-      if (fix) {
-        deLat = fix.lat;
-        deLng = fix.lng;
-        toast.info('Map destination adjusted to Tandag City to match your booking address.');
-        if (row.status === 'Pending') {
+      if (deLat != null && deLng != null && destinationLooksMisplacedForTandag(row.destination || '', deLat, deLng)) {
+        const fix = await geocodeAddress(row.destination || '');
+        if (fix) {
+          deLat = fix.lat;
+          deLng = fix.lng;
+          toast.info('Map destination adjusted to Tandag City to match your booking address.');
           await supabase
             .from('reservations')
             .update({ destination_lat: fix.lat, destination_lng: fix.lng })
             .eq('id', row.id);
         }
       }
+
+      if (puLat == null || puLng == null || deLat == null || deLng == null) {
+        setLoadState('empty');
+        setPayload(null);
+        return;
+      }
+
+      const tripStops: RouteStop[] = [
+        { label: `Pickup — ${row.pickup_location}`, coords: [puLat, puLng] },
+        { label: `Destination — ${row.destination}`, coords: [deLat, deLng] },
+      ];
+
+      const vehicleLabel =
+        row.vehicles?.plate_number?.trim() || row.vehicles?.model?.trim() || 'Vehicle TBD';
+
+      const driverName = row.profiles?.full_name?.trim() || 'Driver assigned at dispatch';
+      const driverPhone = formatDriverPhone(row.profiles?.contact_number);
+
+      setPayload({
+        row,
+        tripStops,
+        vehicleLabel,
+        driverName,
+        driverPhone: driverPhone || '—',
+      });
+      setLoadState('ready');
+      return;
     }
 
-    if (puLat == null || puLng == null || deLat == null || deLng == null) {
+    const { data: pendingRow, error: pendErr } = await supabase
+      .from('reservations')
+      .select(sel)
+      .eq('customer_id', user.id)
+      .eq('status', 'Pending')
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (pendErr) {
+      console.warn(pendErr);
       setLoadState('empty');
       setPayload(null);
       return;
     }
 
-    const tripStops: RouteStop[] = [
-      { label: `Pickup — ${row.pickup_location}`, coords: [puLat, puLng] },
-      { label: `Destination — ${row.destination}`, coords: [deLat, deLng] },
-    ];
+    if (pendingRow) {
+      setAwaitingRow(pendingRow as LoadedReservation);
+      setPayload(null);
+      setLoadState('awaiting');
+      return;
+    }
 
-    const vehicleLabel =
-      row.vehicles?.plate_number?.trim() || row.vehicles?.model?.trim() || 'Vehicle TBD';
-
-    const driverName = row.profiles?.full_name?.trim() || 'Driver assigned at dispatch';
-    const driverPhone = formatDriverPhone(row.profiles?.contact_number);
-
-    setPayload({
-      row: row as LoadedReservation,
-      tripStops,
-      vehicleLabel,
-      driverName,
-      driverPhone: driverPhone || '—',
-    });
-    setLoadState('ready');
+    setLoadState('empty');
+    setPayload(null);
   }, []);
 
   useEffect(() => {
@@ -881,13 +882,62 @@ export default function TrackingPage() {
     );
   }
 
-  if (loadState === 'empty' || !payload) {
+  if (loadState === 'awaiting' && awaitingRow) {
+    const when =
+      awaitingRow.start_date && !Number.isNaN(new Date(awaitingRow.start_date).getTime())
+        ? new Date(awaitingRow.start_date).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+        : null;
     return (
       <div className="space-y-8 animate-in fade-in" style={{ padding: 48, maxWidth: 560, margin: '0 auto' }}>
         <h1>Track My Trip</h1>
         <p style={{ color: 'var(--slate-600)', lineHeight: 1.6 }}>
-          No confirmed trip with a mappable route yet. Book a trip with pickup and destination, apply the latest database migration
-          (<code style={{ fontSize: 12 }}>015_reservation_trip_coordinates.sql</code>), then open this page again.
+          Live map and progress appear after the cooperative confirms your booking. This request is still pending.
+        </p>
+        <div
+          className="card"
+          style={{ padding: 24, border: '1px solid var(--slate-200)', borderRadius: 12, background: 'var(--slate-50, #f8fafc)' }}
+        >
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 700, letterSpacing: 0.06, textTransform: 'uppercase', color: 'var(--slate-500)' }}>
+            Awaiting confirmation
+          </p>
+          <p style={{ margin: '8px 0 0', fontSize: 20, fontWeight: 800, color: 'var(--slate-900)' }}>{awaitingRow.reservation_id_str}</p>
+          {when && (
+            <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--slate-600)' }}>{when}</p>
+          )}
+          <div style={{ marginTop: 16, display: 'grid', gap: 10, fontSize: 14, color: 'var(--slate-700)' }}>
+            <p style={{ margin: 0 }}>
+              <span style={{ fontWeight: 700 }}>Pickup: </span>
+              {awaitingRow.pickup_location || '—'}
+            </p>
+            <p style={{ margin: 0 }}>
+              <span style={{ fontWeight: 700 }}>Destination: </span>
+              {awaitingRow.destination || '—'}
+            </p>
+          </div>
+        </div>
+        <p style={{ color: 'var(--slate-500)', fontSize: 13, lineHeight: 1.5 }}>
+          If you did not start a booking, check &quot;My reservations&quot; for an old draft or test record you can cancel.
+        </p>
+        <div className="flex-start gap-3" style={{ flexWrap: 'wrap' }}>
+          <Link to="/customer/reservations" className="btn btn-brand">
+            My reservations
+          </Link>
+          <Link to="/customer/make-reservation" className="btn btn-outline">
+            New reservation
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadState === 'empty') {
+    return (
+      <div className="space-y-8 animate-in fade-in" style={{ padding: 48, maxWidth: 560, margin: '0 auto' }}>
+        <h1>Track My Trip</h1>
+        <p style={{ color: 'var(--slate-600)', lineHeight: 1.6 }}>
+          No active trip to track. When a booking is confirmed, you can follow the route here. If the map is blank for a
+          confirmed trip, your project may need the coordinates migration
+          (<code style={{ fontSize: 12 }}>015_reservation_trip_coordinates.sql</code>).
         </p>
         <div className="flex-start gap-3" style={{ flexWrap: 'wrap' }}>
           <Link to="/customer/make-reservation" className="btn btn-brand">
@@ -899,6 +949,10 @@ export default function TrackingPage() {
         </div>
       </div>
     );
+  }
+
+  if (loadState !== 'ready' || !payload) {
+    return null;
   }
 
   return (
