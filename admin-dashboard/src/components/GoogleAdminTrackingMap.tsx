@@ -29,6 +29,8 @@ type Props = {
   apiKey: string;
   demoMode: boolean;
   trips: FleetTripMarker[];
+  /** OSRM/Mapbox road paths per trip id (from fetchDrivingRoute). */
+  fleetRoadPaths: Record<string, LatLng[]>;
   demoStops: DemoStop[];
   straightDemo: LatLng[];
   demoPolyline: LatLng[];
@@ -86,6 +88,7 @@ export function GoogleAdminTrackingMap(props: Props) {
 function GoogleAdminTrackingMapInner({
   demoMode,
   trips,
+  fleetRoadPaths,
   demoStops,
   straightDemo,
   demoPolyline,
@@ -152,6 +155,10 @@ function GoogleAdminTrackingMapInner({
         b.extend({ lat: t.pos[0], lng: t.pos[1] });
         if (t.pickupCoords) b.extend({ lat: t.pickupCoords[0], lng: t.pickupCoords[1] });
         if (t.destinationCoords) b.extend({ lat: t.destinationCoords[0], lng: t.destinationCoords[1] });
+        const road = fleetRoadPaths[t.id];
+        if (road?.length) {
+          road.forEach(([lat, lng]) => b.extend({ lat, lng }));
+        }
       });
       const ne = b.getNorthEast();
       const sw = b.getSouthWest();
@@ -169,7 +176,7 @@ function GoogleAdminTrackingMapInner({
       };
     }
     return undefined;
-  }, [demoMode, demoPolyline, trips]);
+  }, [demoMode, demoPolyline, trips, fleetRoadPaths]);
 
   const defaultCenter = demoMode ? DAVAO_CENTER : FLEET_DEFAULT_CENTER;
   const pathLatLng = demoPolyline.map(([lat, lng]) => ({ lat, lng }));
@@ -235,18 +242,31 @@ function GoogleAdminTrackingMapInner({
 
       {!demoMode && (
         <>
-          {trips.map((t) =>
-            t.pickupCoords && t.destinationCoords ? (
-              <Polyline
-                key={`fleet-corridor-${t.id}`}
-                path={[
-                  { lat: t.pickupCoords[0], lng: t.pickupCoords[1] },
-                  { lat: t.destinationCoords[0], lng: t.destinationCoords[1] },
-                ]}
-                options={{ strokeColor: ROUTE_BLUE, strokeOpacity: 0.92, strokeWeight: 5 }}
-              />
-            ) : null,
-          )}
+          {trips.map((t) => {
+            const road = fleetRoadPaths[t.id];
+            if (road && road.length >= 2) {
+              return (
+                <Polyline
+                  key={`fleet-corridor-${t.id}`}
+                  path={road.map(([lat, lng]) => ({ lat, lng }))}
+                  options={{ strokeColor: ROUTE_BLUE, strokeOpacity: 0.92, strokeWeight: 5 }}
+                />
+              );
+            }
+            if (t.pickupCoords && t.destinationCoords) {
+              return (
+                <Polyline
+                  key={`fleet-corridor-${t.id}`}
+                  path={[
+                    { lat: t.pickupCoords[0], lng: t.pickupCoords[1] },
+                    { lat: t.destinationCoords[0], lng: t.destinationCoords[1] },
+                  ]}
+                  options={{ strokeColor: ROUTE_BLUE, strokeOpacity: 0.8, strokeWeight: 4 }}
+                />
+              );
+            }
+            return null;
+          })}
           {trips.map((t) => (
             <Marker
               key={t.id}

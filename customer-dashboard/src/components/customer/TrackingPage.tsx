@@ -10,7 +10,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { getMapTileLayerConfig } from '../../lib/mapTiles';
 import { supabase } from '../../lib/supabase';
 import { useRealtimeRefresh } from '../../lib/useRealtimeRefresh';
-import { geocodeAddress } from '../../lib/geocodePhoton';
+import { geocodeAddress, destinationLooksMisplacedForTandag } from '../../lib/geocodePhoton';
 import {
   positionAlongPolyline,
   stopArcLengthsOnRoute,
@@ -251,7 +251,19 @@ function TrackingExperience({
           ? formatEtaMinutesFromRemainingKm(((100 - progress) / 100) * (arrivalLengthM / 1000))
           : formatEtaMinutesFromRemainingKm(((100 - progress) / 100) * (tripLengthM / 1000)),
     lastUpdate: 'Just now',
-    eta: '—',
+    eta:
+      progress >= 100
+        ? 'Arrived'
+        : simulationKind === 'arrival'
+          ? formatEtaMinutesFromRemainingKm(((100 - progress) / 100) * (arrivalLengthM / 1000))
+          : (() => {
+              const remKm = ((100 - progress) / 100) * (tripLengthM / 1000);
+              const mins = Math.max(1, Math.round((remKm / 32) * 60));
+              return new Date(Date.now() + mins * 60000).toLocaleTimeString(undefined, {
+                hour: 'numeric',
+                minute: '2-digit',
+              });
+            })(),
   };
 
   const clearSimulation = () => {
@@ -601,13 +613,23 @@ function TrackingExperience({
               {simulationKind !== 'arrival' && progress < 100 && (
                 <p style={{ fontSize: 12, color: 'var(--slate-600)', marginBottom: 16, fontWeight: 600 }}>{legSnippet}</p>
               )}
-              <div className="space-y-4">
+              <div className="space-y-4" style={{ maxHeight: 320, overflowY: 'auto' }}>
                  {tripStops.map((stop, i) => {
                     const isFirst = i === 0;
                     const isLast = i === tripStops.length - 1;
                     const role = isFirst ? 'Start' : isLast ? 'End' : `Via ${i}`;
                     let rowState: 'done' | 'next' | 'pending' = 'pending';
-                    if (simulationKind === 'arrival') {
+                    if (tripStops.length === 2) {
+                      if (simulationKind === 'arrival') {
+                        rowState = isFirst ? (progress >= 100 ? 'done' : 'next') : isLast ? 'pending' : 'pending';
+                      } else if (progress >= 100) {
+                        rowState = 'done';
+                      } else if (isFirst) {
+                        rowState = progress > 8 ? 'done' : 'next';
+                      } else {
+                        rowState = 'next';
+                      }
+                    } else if (simulationKind === 'arrival') {
                       rowState = isFirst ? (progress >= 100 ? 'done' : 'next') : 'pending';
                     } else if (progress >= 100) {
                       rowState = 'done';
@@ -620,7 +642,7 @@ function TrackingExperience({
                     const bold = rowState === 'next';
                     return (
                       <div
-                        key={stop.label}
+                        key={`${i}-${stop.label}`}
                         className="flex-start"
                         style={{
                           alignItems: 'flex-start',
@@ -762,8 +784,8 @@ export default function TrackingPage() {
 
     if (puLat == null || puLng == null || deLat == null || deLng == null) {
       const [pGeo, dGeo] = await Promise.all([
-        geocodeAddress(`${row.pickup_location}, Philippines`),
-        geocodeAddress(`${row.destination}, Philippines`),
+        geocodeAddress(row.pickup_location || ''),
+        geocodeAddress(row.destination || ''),
       ]);
       if (pGeo && dGeo) {
         puLat = pGeo.lat;
@@ -779,6 +801,25 @@ export default function TrackingPage() {
               destination_lat: dGeo.lat,
               destination_lng: dGeo.lng,
             })
+            .eq('id', row.id);
+        }
+      }
+    }
+
+    if (
+      deLat != null &&
+      deLng != null &&
+      destinationLooksMisplacedForTandag(row.destination || '', deLat, deLng)
+    ) {
+      const fix = await geocodeAddress(row.destination || '');
+      if (fix) {
+        deLat = fix.lat;
+        deLng = fix.lng;
+        toast.info('Map destination adjusted to Tandag City to match your booking address.');
+        if (row.status === 'Pending') {
+          await supabase
+            .from('reservations')
+            .update({ destination_lat: fix.lat, destination_lng: fix.lng })
             .eq('id', row.id);
         }
       }

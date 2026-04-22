@@ -158,6 +158,7 @@ function FitBounds({ positions }: { positions: Array<[number, number]> }) {
 
 export function Tracking() {
   const [trips, setTrips] = useState<ActiveTrip[]>([]);
+  const [fleetRoadPaths, setFleetRoadPaths] = useState<Record<string, LatLng[]>>({});
   const [totalVehicles, setTotalVehicles] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -242,6 +243,28 @@ export function Tracking() {
     setDemoProgress(0);
     setDemoPolyline(straightDemo);
   };
+
+  useEffect(() => {
+    if (demoMode) return;
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, LatLng[]> = {};
+      for (const t of trips) {
+        if (!t.pickupCoords || !t.destinationCoords) continue;
+        try {
+          const { coordinates } = await fetchDrivingRoute([t.pickupCoords, t.destinationCoords]);
+          if (coordinates.length >= 2) next[t.id] = coordinates;
+          else next[t.id] = [t.pickupCoords, t.destinationCoords];
+        } catch {
+          next[t.id] = [t.pickupCoords, t.destinationCoords];
+        }
+      }
+      if (!cancelled) setFleetRoadPaths(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [trips, demoMode]);
 
   useEffect(() => {
     fetchData();
@@ -423,6 +446,7 @@ export function Tracking() {
                 apiKey={GOOGLE_MAPS_KEY}
                 demoMode={demoMode}
                 trips={tripsForMap}
+                fleetRoadPaths={fleetRoadPaths}
                 demoStops={DAVAO_DEMO_STOPS}
                 straightDemo={straightDemo}
                 demoPolyline={demoPolyline}
@@ -474,15 +498,21 @@ export function Tracking() {
                 ) : (
                   <>
                     <FitBounds positions={positions} />
-                    {tripsForMap.map(t =>
-                      t.pickupCoords && t.destinationCoords ? (
+                    {tripsForMap.map(t => {
+                      const path =
+                        fleetRoadPaths[t.id] && fleetRoadPaths[t.id].length >= 2
+                          ? fleetRoadPaths[t.id]
+                          : t.pickupCoords && t.destinationCoords
+                            ? [t.pickupCoords, t.destinationCoords]
+                            : null;
+                      return path ? (
                         <Polyline
                           key={`corridor-${t.id}`}
-                          positions={[t.pickupCoords, t.destinationCoords]}
-                          pathOptions={{ color: '#4285F4', weight: 5, opacity: 0.88 }}
+                          positions={path}
+                          pathOptions={{ color: '#4285F4', weight: 5, opacity: 0.9 }}
                         />
-                      ) : null,
-                    )}
+                      ) : null;
+                    })}
                     {tripsForMap.map(t => (
                       <Marker key={t.id} position={t.pos} icon={vehicleIcon(t.vehicleLabel, t.moving)}>
                         <Popup>
